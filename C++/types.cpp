@@ -46,7 +46,7 @@ void Web::window(int u)
 {       
     // ограничивает пропускную способность в
         if (verVec[u].type == INTERVAL){
-            verVec[u].cap[dest] -= cw;
+            verVec[u].cap[dest] -= verVec[u].cTime;
             if (verVec[u].flow[dest] > verVec[u].cap[dest]){
              int value = verVec[u].cap[dest] - verVec[u].flow[dest];
              verVec[u].flow[dest] += value;
@@ -63,9 +63,9 @@ void Web::window(int u)
 void Web::clwindow(int u)
 {
         if (verVec[u].type == INTERVAL){
-            verVec[u].cap[dest] += cw;
-            if (verVec[u].exf >= cw){
-                int value = cw;
+            verVec[u].cap[dest] += verVec[u].cTime;
+            if (verVec[u].exf >= verVec[u].cTime){
+                int value = verVec[u].cTime;
                 verVec[u].flow[dest] += value;
                 verVec[dest].flow[u] = -verVec[u].flow[dest];
                 verVec[u].exf -= value;
@@ -82,7 +82,7 @@ void Web::push(int u, int v, bool is_first_epoch)
 {
         int ni, pi;
         int value = std::min(verVec[u].cap[v] - verVec[u].flow[v], verVec[u].exf);
-        if (verVec[v].type == INTERVAL && is_first_epoch) value = std::max(0,(std::min(value, verVec[v].cap[dest] - verVec[v].flow[dest] -(test(u,v, value))*cw) -verVec[v].exf));
+        if (verVec[v].type == INTERVAL && is_first_epoch) value = std::max(0,(std::min(value, verVec[v].cap[dest] - verVec[v].flow[dest] -(test(u,v, value))*verVec[u].cTime) -verVec[v].exf));
         if (value == 0){
             return;
         }
@@ -129,14 +129,13 @@ void Web::push(int u, int v, bool is_first_epoch)
 }
 
 bool Web::discharge(int u, bool is_first)
-{
+{       
         bool lifted = false;
         bool is_first_epoch = true;
         map<int,int>::iterator cur = verVec[u].cap.begin();
         //lift(u);
        // if (is_first){
             while (verVec[u].exf > 0) {
-
                 //Поднять вершину если все пути просмотены и начать с начала
                 if (cur == verVec[u].cap.end()) {
                     // первый раз только один проход по всем вершинам
@@ -175,8 +174,10 @@ bool Web::discharge(int u, bool is_first)
                    if (v == 0){
                        if (hints != 0 && verVec[u].type == JOB){
                            // надо что-то менять
+                        //    cout << "We want hint" << endl;
                            hints--;
                            part_from_proc(verVec[u].part, QP[verVec[u].part]);
+                        //    cout << "We execute part drawback" << endl;
                            lift(u);
                            lifted = true;
                            cur = verVec[u].cap.begin();
@@ -269,8 +270,9 @@ void Web::maxflow()
      bool isfirsttime = true;
      bool isendwork = false;
      while (!isendwork)
-     {
+     {  
          hints = nproc*nproc - 1;
+        //  cout << "Number of hints:" << hints << endl;
          isendwork = true;
          verVec[0].h = attemptCount;
          for(map<int,int>::iterator it = verVec[0].cap.begin(); it != verVec[0].cap.end(); it++)
@@ -294,11 +296,14 @@ void Web::maxflow()
          while (!isend)
          {
             isend = true;
+            // cout << "New way" << endl;
             for (int i = 1; i < q + 1; i++)//по порядку разделов
-            {
+            {   
+                // cout << "Partition now:" << i << endl;
                 bool is_first = true;
                 while (!P[i].empty() || !P[0].empty())
-                {
+                {   
+                    // cout << "We are here" << endl;
                     if(is_first){
                         for(set<int>::iterator it1 = P[i].begin(); it1 != P[i].end(); it1++){
                             discharge(*it1, true);
@@ -321,7 +326,9 @@ void Web::maxflow()
                     }
                 }
             }
+            // cout << "For is ended" << endl;
          }
+        //  cout << "We are stuck here!!!" << endl;
         // if (!istryedSecond){
          //   isendwork = false;
         //    istryedSecond = true;
@@ -434,12 +441,13 @@ void Web::checkpartadd(int v, int part, int value, int ni, int pi)
 }
 
 void Web::checkpartdec(int v, int part, int value)
-{
+{   
+    // cout << "checkpartdec" << v <<endl;
     int numpart1 = verVec[v].setpart.size();
     verVec[v].partIn[part]-=value;
     if (verVec[v].partIn[part] == 0) verVec[v].setpart.erase(part);//убрали совсем
     int numpart2 = verVec[v].setpart.size();
-
+    // cout << "checkpartdec 1" << endl;  
     if (numpart1 != numpart2)
     {
        if (numpart2 == 0)
@@ -456,6 +464,7 @@ void Web::checkpartdec(int v, int part, int value)
        }
        else if (numpart2 > 1)
        {
+         
         if (part == verVec[v].lastPart) verVec[v].lastPart = finsetneq(verVec[v].setpart, verVec[v].firstPart);
         else if (part == verVec[v].firstPart) verVec[v].firstPart = finsetneq(verVec[v].setpart, verVec[v].lastPart);
        }
@@ -492,7 +501,7 @@ void Web::correctwindows(int v, int ni, int pi)
          //условие открытия
          if (verVec[ni].firstPart != verVec[v].lastPart && !verVec[ni].isLWin && !verVec[v].isRWin)
          {
-            if( verVec[ni].cap[dest] - verVec[ni].flow[dest] >= cw && verVec[v].exf + verVec[v].flow[dest] > verVec[v].cap[dest] - cw){
+            if( verVec[ni].cap[dest] - verVec[ni].flow[dest] >= verVec[v].cTime && verVec[v].exf + verVec[v].flow[dest] > verVec[v].cap[dest] - verVec[v].cTime){
                 window(ni);
                 verVec[ni].isLWin = true;
             }
@@ -532,7 +541,7 @@ void Web::correctwindows(int v, int ni, int pi)
          //условие открытия
          if (verVec[pi].lastPart != verVec[v].firstPart && !verVec[pi].isRWin && !verVec[v].isLWin)
          {
-             if( verVec[pi].cap[dest] - verVec[pi].flow[dest] >= cw && verVec[v].exf + verVec[v].flow[dest] > verVec[v].cap[dest] - cw){
+             if( verVec[pi].cap[dest] - verVec[pi].flow[dest] >= verVec[v].cTime && verVec[v].exf + verVec[v].flow[dest] > verVec[v].cap[dest] - verVec[v].cTime){
              //if( verVec[pi].flow[dest] - verVec[pi].cap[dest] >= cw){
                  window(pi);
                  verVec[pi].isRWin = true;
@@ -735,38 +744,87 @@ void Web::part_to_proc(int q, int proc){
 void Web::part_from_proc(int q, int proc){
     QP[q] = -1;
     // убрать поток
-
+    // cout << "we begin" << endl;
     // открыть новые пути
     for(set<int>::iterator pit = (vPart[q]).begin(); pit != (vPart[q]).end(); pit++){
-        for (map<int,int>::iterator it = verVec[*pit].cap.begin(); it != verVec[*pit].cap.end(); it++){
+        int v = *pit;
+        // cout << "we begin:" << v <<endl;
+        for (map<int,int>::iterator it = verVec[v].cap.begin(); it != verVec[v].cap.end(); it++){
+            // cout << "we continue:" << it->first <<endl;
             int u = it->first;
-            int v = *pit;
             if (verVec[u].proc == proc){
 
                 int value = verVec[v].flow[u];
 
-                verVec[1].exf -= value;
+                verVec[u].exf -= value;
                 verVec[v].exf += value;
                 verVec[v].h = 1;
                 verVec[u].h = 1;
                 if (v != 1 && verVec[v].exf > 0) P[verVec[v].part].insert(v);
 
-                verVec[1].flow[u] += value;
-                verVec[u].flow[1] -= value;
+                // verVec[1].flow[v] += value;
+                // verVec[v].flow[1] -= value;
                 verVec[v].flow[u] -= value;
                 verVec[u].flow[v] += value;
 
                 int ni = findnext(u);
                 int pi = findprev(u);
+                // cout << "we there 1:" << it->first <<endl;
                 checkpartdec(u, verVec[v].part, value);
+                // cout << "we there 2:" << it->first <<endl;
                 correctwindows(u, ni, pi);
-
+                // cout << "we there 3:" << it->first <<endl;
                 verVec[v].cap[u] = 0;
             }
             else if (verVec[u].type == INTERVAL)
             {
-                verVec[*pit].cap[u] = verVec[u].duration;
+                verVec[v].cap[u] = verVec[u].duration;
             }
         }
     }
+}
+
+
+
+long long NOK(long long a, long long b)
+{
+  return a*b / NOD(a, b);
+}
+
+long long NOD(long long a, long long b)
+{
+
+  while (a != 0 && b != 0)
+  {
+    if (a > b)
+    {
+              a %= b;
+    }
+    else
+    {
+              b %= a;
+    }
+  }
+
+  return a + b;
+}
+
+
+vector<string> split(string strToSplit, string delimeter)
+{
+     std::vector<std::string> splittedString;
+     int startIndex = 0;
+     int  endIndex = 0;
+     while( (endIndex = strToSplit.find(delimeter, startIndex)) < strToSplit.size() )
+    {
+       string val = strToSplit.substr(startIndex, endIndex - startIndex);
+       splittedString.push_back(val);
+       startIndex = endIndex + delimeter.size();
+     }
+     if(startIndex < strToSplit.size())
+     {
+       string val = strToSplit.substr(startIndex);
+       splittedString.push_back(val);
+     }
+     return splittedString;
 }

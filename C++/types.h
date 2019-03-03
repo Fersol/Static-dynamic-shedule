@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <algorithm>
+#include <iostream>
 
 using namespace std;
 
@@ -19,7 +20,7 @@ typedef vector<LInt> VLInt;
 typedef LInt::iterator LIter;
 typedef vector<LIter> VLIter;
 
-const int attemptCount = 10;
+const int attemptCount = 5;
 
 enum VType{ DEFAULT, JOB, INTERVAL, SOURCE, DEST };
 
@@ -41,6 +42,31 @@ struct Job
     long duration;   //длительность выполнения работы
 };
 
+struct TaskHeterogenes
+{
+    long long period;     //период задачи
+    long long partition;  //раздел задачи
+    long long complexity;   //сложность выполнения задачи
+    set<string> functionality; //требуемая функциональность
+};
+
+
+struct JobHeterogenes
+{   
+    int numTask;  // номер задачи
+    long long start;      //время начала директивного интервала
+    long long finish;     //время завершения директивного интервала
+    int partition;  //раздел работы
+    long complexity;   //сложность выполнения работы
+    set<string> functionality; //требуемая функциональность
+};
+
+struct Processor
+{
+    int performance; //performance/complexity = time
+    set<string> functionality; // обеспечиваемая функциональность
+};
+
 struct Window
 {
     long long start;
@@ -56,9 +82,11 @@ struct Vertex
   int part = 0;					//разделы к которым принадлежит вершина для работ, 0 для интервалов
   int h = 0;					//высота вершины
   int proc = -1;                     // номер процессора для вершины интервала
+  int cTime; // сложность переключения
   long long stTime = 0;
   long long finTime = 0;
   long long duration = 0;
+  set<string> options; // метки вершины
   //здесь определены соседи (в следующих 2-х строчках
   map<int, int> flow;
   map<int, int> cap;
@@ -226,5 +254,24 @@ public:
     void part_from_proc(int q, int proc);
 };
 
+
+
+/**
+ * @brief NOD
+ * @param n1
+ * @param n2
+ * @return
+ */
+long long NOD(long long n1, long long n2);
+
+/**
+ * @brief NOK
+ * @param n1
+ * @param n2
+ * @return
+ */
+long long NOK(long long n1, long long n2);
+
+vector<string> split(string strToSplit, string delimeter);
 
 #endif // TYPES_H
