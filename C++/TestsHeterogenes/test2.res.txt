@@ -1,0 +1,11 @@
+Time: 0.001000c
+Works: 2
+Effectivness: 1.000000
+Processor:0
+Windows:
+1 [0, 100]  ---   0:600 ; 
+
+Processor:1
+Windows:
+2 [0, 100]  ---   1:500 ; 
+
