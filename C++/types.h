@@ -72,7 +72,7 @@ struct Window
     long long start;
     long long finish;
     long long partition;
-    map<int, int> works;
+    map<int, float> works;
 };
 
 struct Vertex
@@ -122,6 +122,7 @@ public:
     map< int, set<int> > vPart; // номера вершин по разделам
     vector<Vertex> verVec;   //cами вершины
     map< int, int> QP; // Соответствие раздела процессору.
+    vector<Processor*> processors;
 
     /**
      * Конструктор по умолчанию
