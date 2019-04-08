@@ -40,39 +40,44 @@ vector<Processor*> ReadSystemFromFile(string filename)
 
 bool WriteWindowsToFile(list< list<Window*> > windows, string filename, string time, string works, string eff)
 {
-    ofstream file(filename);
+    ofstream fileres(filename+".res");
 
-    file<<"Time: ";
-    file<<time;
-    file<<"\n";
+    fileres<<"Time, Works, Performance\n";
+    fileres<<time;
+    fileres<<", ";
 
-    file<<"Works: ";
-    file<<works;
-    file<<"\n";
+    fileres<<works;
+    fileres<<", ";
+ 
+    fileres<<eff;
+    fileres<<"\n";
+    fileres.close();
 
-    file<<"Effectivness: ";
-    file<<eff;
-    file<<"\n";
+    ofstream file(filename+".sol");
+    file << "Processor, Partition, Window, Works\n";
 
     int proc = 0;
     for(list<list<Window*> >::iterator itproc = windows.begin(); itproc != windows.end(); itproc ++){
-        file<< "Processor:" << proc << "\n";
-        file<<"Windows:\n";
+        // file<< "Processor:" << proc << "\n";
+        // file<<"Windows:\n";
         for(list<Window*>::iterator it = (*itproc).begin(); it != (*itproc).end(); it++)
-        {
+        {   
+            file << proc;
+            file << ", ";
+
             file<<(*it)->partition;
-            file<<" [";
-            file<<(*it)->start;
             file<<", ";
+
+            file<<(*it)->start;
+            file<<"-";
             file<<(*it)->finish;
-            file<<"]  ---   ";
-            for(map<int, int>::const_iterator _it = (*it)->works.begin(); _it != (*it)->works.end(); _it++){
-              file << _it->first << ":" << _it->second << " ; ";
+            file<<", ";
+            for(map<int, float>::const_iterator _it = (*it)->works.begin(); _it != (*it)->works.end(); _it++){
+              file << _it->first << "-" << _it->second << ";";
             }
             file<<"\n";
         }
         proc++;
-         file<<"\n";
     }
     file.close();
 }
@@ -216,6 +221,8 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
    //добавить вершины работы и источник по задачам
    Web web;
 
+   web.processors = processors;
+
    web.nproc = processors.size();
    set<int> parts;
 
@@ -272,7 +279,7 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
            temp.nextItr = beginofintver + k + web.nproc;
            temp.prevItr = beginofintver + k - web.nproc;
            temp.duration = (temp.finTime - temp.stTime) * processors[i]->performance;
-           temp.cTime = cTime*temp.duration;
+           temp.cTime = cTime;
            temp.options = processors[i]->functionality;
            web.verVec.push_back(temp);
            k++;
@@ -402,10 +409,10 @@ list< list<Window*> > CreateWindows(Web* web)
                   if (web->verVec[_it->first].part != win->partition || _it->first == 0 || _it->first == 1 ) continue;
                   if(web->verVec[_it->first].flow[it] > 0){
                     if (win->works.count(web->verVec[_it->first].numTask)){
-                      win->works[web->verVec[_it->first].numTask] += web->verVec[_it->first].flow[it];
+                      win->works[web->verVec[_it->first].numTask] += float(web->verVec[_it->first].flow[it]) /web->processors[web->verVec[it].proc]->performance;
                     }
                     else{
-                      win->works[web->verVec[_it->first].numTask] = web->verVec[_it->first].flow[it];
+                      win->works[web->verVec[_it->first].numTask] = float(web->verVec[_it->first].flow[it]) / web->processors[web->verVec[it].proc]->performance;
                     }
                   }
                 }
@@ -426,10 +433,10 @@ list< list<Window*> > CreateWindows(Web* web)
                       if (web->verVec[_it->first].part != win->partition || _it->first == 0 || _it->first == 1 ) continue;
                       if(web->verVec[_it->first].flow[it] > 0){
                         if (win->works.count(web->verVec[_it->first].numTask)){
-                          win->works[web->verVec[_it->first].numTask] += web->verVec[_it->first].flow[it];
+                          win->works[web->verVec[_it->first].numTask] += float(web->verVec[_it->first].flow[it])/web->processors[web->verVec[it].proc]->performance;
                         }
                         else{
-                          win->works[web->verVec[_it->first].numTask] = web->verVec[_it->first].flow[it];
+                          win->works[web->verVec[_it->first].numTask] = float(web->verVec[_it->first].flow[it])/web->processors[web->verVec[it].proc]->performance;
                         }
                       }
                     }
@@ -450,10 +457,10 @@ list< list<Window*> > CreateWindows(Web* web)
               if (web->verVec[_it->first].part != win->partition || _it->first == 0 || _it->first == 1 ) continue;
               if(web->verVec[_it->first].flow[it] > 0){
                 if (win->works.count(web->verVec[_it->first].numTask)){
-                  win->works[web->verVec[_it->first].numTask] += web->verVec[_it->first].flow[it];
+                  win->works[web->verVec[_it->first].numTask] += float(web->verVec[_it->first].flow[it])/web->processors[web->verVec[it].proc]->performance;
                 }
                 else{
-                  win->works[web->verVec[_it->first].numTask] = web->verVec[_it->first].flow[it];
+                  win->works[web->verVec[_it->first].numTask] = float(web->verVec[_it->first].flow[it])/web->processors[web->verVec[it].proc]->performance;
                 }
               }
             }

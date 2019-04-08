@@ -52,22 +52,5 @@ list< list<Window*> > CreateWindows(Web* web);
  */
 bool WriteWindowsToFile(list< list<Window*> > windows, string filename, string time, string works, string eff);
 
-/**
- * @brief NOD
- * @param n1
- * @param n2
- * @return
- */
-long long NOD(long long n1, long long n2);
 
-/**
- * @brief NOK
- * @param n1
- * @param n2
- * @return
- */
-long long NOK(long long n1, long long n2);
-
-
-vector<string> split(string strToSplit, string delimeter);
 #endif // MAXFLOW_H

@@ -435,45 +435,4 @@ long long TimeToShedule(list<Task*> tasks)
     return timelap;
 }
 
-long long NOK(long long a, long long b)
-{
-  return a*b / NOD(a, b);
-}
 
-long long NOD(long long a, long long b)
-{
-
-  while (a != 0 && b != 0)
-  {
-    if (a > b)
-    {
-              a %= b;
-    }
-    else
-    {
-              b %= a;
-    }
-  }
-
-  return a + b;
-}
-
-
-vector<string> split(string strToSplit, string delimeter)
-{
-     std::vector<std::string> splittedString;
-     int startIndex = 0;
-     int  endIndex = 0;
-     while( (endIndex = strToSplit.find(delimeter, startIndex)) < strToSplit.size() )
-    {
-       string val = strToSplit.substr(startIndex, endIndex - startIndex);
-       splittedString.push_back(val);
-       startIndex = endIndex + delimeter.size();
-     }
-     if(startIndex < strToSplit.size())
-     {
-       string val = strToSplit.substr(startIndex);
-       splittedString.push_back(val);
-     }
-     return splittedString;
-}
