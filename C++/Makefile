@@ -8,7 +8,7 @@ testh1:
 	shedulerH 1 TestsHeterogenes/test1 Systems/system1
 
 testh2:
-	shedulerH 1 TestsHeterogenes/test2 Systems/system2
+	shedulerH 1 TestsHeterogenes/test2 Systems/system1
 
 test1:
 	sheduler 1 1 Tests/test1

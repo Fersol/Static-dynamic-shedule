@@ -96,9 +96,9 @@ void Web::push(int u, int v, bool is_first_epoch)
         if ((verVec[u].type == JOB) && (verVec[v].type == INTERVAL))
         {
             // первый раз отправили и определили раздел
-            if (nproc > 1 && QP[verVec[u].part] == -1){
-                part_to_proc(verVec[u].part, verVec[v].proc);
-            }
+            // if (nproc > 1 && QP[verVec[u].part] == -1){
+            //     part_to_proc(verVec[u].part, verVec[v].proc);
+            // }
             ni = findnext(v);
             pi = findprev(v);
             checkpartadd(v, verVec[u].part, value, ni, pi);
@@ -177,6 +177,7 @@ bool Web::discharge(int u, bool is_first)
                         //    cout << "We want hint" << endl;
                            hints--;
                            part_from_proc(verVec[u].part, QP[verVec[u].part]);
+                         //  decide_proc(verVec[u].part);
                         //    cout << "We execute part drawback" << endl;
                            lift(u);
                            lifted = true;
@@ -266,6 +267,12 @@ void Web::maxflow()
 {
      //Инициализация
      verVec[0].h = n;
+
+     for(int i =0; i < q;i++){
+         decide_proc(partitionOrder[i]);
+         //cout << QP[i];
+     }
+
 
      bool isfirsttime = true;
      bool isendwork = false;
@@ -729,20 +736,21 @@ int Web::sheduledjobs()
 
 
 
-void Web::part_to_proc(int q, int proc){
-    // Раздел прикпрепляется к процессору, на других он выполнятся не может - пропускные способности в остальные равны 0
-    QP[q] = proc;
-    for(set<int>::iterator pit = (vPart[q]).begin(); pit != (vPart[q]).end(); pit++){
-        for (map<int,int>::iterator it = verVec[*pit].cap.begin(); it != verVec[*pit].cap.end(); it++){
-            if (verVec[it->first].proc != proc){
-                verVec[*pit].cap[it->first] = 0;
-            }
-        }
-    }
-}
+// void Web::part_to_proc(int q, int proc){
+//     // Раздел прикпрепляется к процессору, на других он выполнятся не может - пропускные способности в остальные равны 0
+//     QP[q] = proc;
+//     for(set<int>::iterator pit = (vPart[q]).begin(); pit != (vPart[q]).end(); pit++){
+//         for (map<int,int>::iterator it = verVec[*pit].cap.begin(); it != verVec[*pit].cap.end(); it++){
+//             if (verVec[it->first].proc != proc){
+//                 verVec[*pit].cap[it->first] = 0;
+//             }
+//         }
+//     }
+// }
 
 void Web::part_from_proc(int q, int proc){
-    QP[q] = -1;
+    //QP[q] = -1;
+    processorLoad[proc] += partitionComplexity[q];
     // убрать поток
     // cout << "we begin" << endl;
     // открыть новые пути
@@ -782,9 +790,43 @@ void Web::part_from_proc(int q, int proc){
             }
         }
     }
+
+    // Назначить новый процессор
+    decide_proc(q,proc);
 }
 
+void Web::decide_proc(int part, int prohibit_proc){
+    int idxProc = 0;
+    int freeSpace = 0;
+    int complexity = partitionComplexity[part];
 
+    for(int i=0; i < nproc;i++){
+        bool isFunctionality = true;
+        set<string> result;
+        std::set_intersection(processors[i]->functionality.begin(),processors[i]->functionality.end(),
+         partitionFunctionality[part].begin(), partitionFunctionality[part].end(),
+        std::inserter(result, result.begin()));
+        if (result != partitionFunctionality[part]){
+            isFunctionality = false;
+        }
+        if (processorLoad[i] >= freeSpace && i != prohibit_proc && isFunctionality) {
+            idxProc = i;
+            freeSpace = processorLoad[i]; 
+        }
+    }
+
+    processorLoad[idxProc] -= complexity;
+    QP[part] = idxProc;
+
+    // запретить другие пути
+    for(set<int>::iterator pit = (vPart[part]).begin(); pit != (vPart[part]).end(); pit++){
+        for (map<int,int>::iterator it = verVec[*pit].cap.begin(); it != verVec[*pit].cap.end(); it++){
+            if (verVec[it->first].proc != idxProc){
+                verVec[*pit].cap[it->first] = 0;
+            }
+        }
+    }
+}
 
 long long NOK(long long a, long long b)
 {
@@ -828,3 +870,4 @@ vector<string> split(string strToSplit, string delimeter)
      }
      return splittedString;
 }
+
