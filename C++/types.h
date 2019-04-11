@@ -9,6 +9,7 @@
 #include <utility>
 #include <algorithm>
 #include <iostream>
+#include <iterator>
 
 using namespace std;
 
@@ -69,8 +70,8 @@ struct Processor
 
 struct Window
 {
-    long long start;
-    long long finish;
+    float start;
+    float finish;
     long long partition;
     map<int, float> works;
 };
@@ -123,7 +124,12 @@ public:
     vector<Vertex> verVec;   //cами вершины
     map< int, int> QP; // Соответствие раздела процессору.
     vector<Processor*> processors;
+    int mainLoop; // НОК работ - интервал планирования
+    vector<int> partitionOrder;
 
+    map<int, int>  processorLoad;
+    map<int, int>  partitionComplexity;
+    map<int,set<string>> partitionFunctionality;
     /**
      * Конструктор по умолчанию
      */
@@ -253,6 +259,11 @@ public:
      * Снимаем раздел с ядра и разрешаем ему идти в другие ядра.
      */
     void part_from_proc(int q, int proc);
+
+    /**
+     * Решаем на какой процессор разместить раздел
+     */
+   void decide_proc(int part, int prohibit_proc=-1);
 };
 
 

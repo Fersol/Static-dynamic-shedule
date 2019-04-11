@@ -222,8 +222,9 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
    Web web;
 
    web.processors = processors;
-
+   web.mainLoop = 0;
    web.nproc = processors.size();
+   
    set<int> parts;
 
    int maxpart = 0;
@@ -240,16 +241,38 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
 
    int k = 2; //номера работ
    for (list<JobHeterogenes*>::iterator it = jobs.begin(); it != jobs.end(); it++)
-   {
+   {        
+           // Ищем интервал планирования
+           if (web.mainLoop < (*it)->finish){
+               web.mainLoop = (*it)->finish;
+           }
+           // Добавляем вершину
            Vertex temp;
            temp.duration = (*it)->complexity;
            temp.part = (*it)->partition;
+           if (web.partitionComplexity.count(temp.part)){
+               web.partitionComplexity[temp.part] += temp.duration;
+           } else {
+               web.partitionComplexity[temp.part] = temp.duration;
+           }
+
            temp.stTime = (*it)->start;
            temp.finTime = (*it)->finish;
            temp.h = 1;
            temp.type = JOB;
            temp.numTask = (*it)->numTask;
            temp.options = (*it)->functionality;
+          
+           if (web.partitionFunctionality.count(temp.part)){
+               set<string> result;
+               std::set_union(web.partitionFunctionality[temp.part].begin(),web.partitionFunctionality[temp.part].end(),
+               temp.options.begin(), temp.options.end(),
+               std::inserter(result, result.begin()));
+               web.partitionFunctionality[temp.part] = result;
+           } else {
+               web.partitionFunctionality[temp.part] = temp.options;
+           }
+           
            web.verVec.push_back(temp);
 
            web.vPart[temp.part].insert(k);
@@ -333,6 +356,10 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
   web.n = web.verVec.size();
   web.numOfWork = jobs.size();
   web.q = maxpart;
+  // добавляем вместительность процессоров
+  for (int i=0;i < web.nproc; i++){
+       web.processorLoad[i] = web.mainLoop * web.processors[i]->performance;
+   }
   //добавить структуру для разделов в вершины-интервалов
   for(int i = beginofintver; i < web.verVec.size(); i++){
       web.verVec[i].partIn.resize(web.q + 1);
@@ -346,6 +373,12 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
   }
   //время на переключение
   web.cw = cTime;
+  // Создать порядок разделов по сортировке
+  vector<pair<int,int>>vec;
+  for(auto x=web.partitionComplexity.begin(); x!=web.partitionComplexity.end(); x++) vec.push_back(*x);
+    sort(vec.begin(),vec.end(),[](pair<int,int>elem1,pair<int,int>elem2){return elem1.second > elem2.second;});
+  for(auto x:vec)web.partitionOrder.push_back(x.first);
+
   return web;
 }
 
@@ -355,7 +388,7 @@ list< list<Window*> > CreateWindows(Web* web)
     for(int iproc = 0; iproc < web->nproc; iproc++){
         list<Window*> windows;
         Window* win = new Window;
-        int curtime = 0;
+        float curtime = 0;
         for (int it = web->numOfWork + 2 + iproc; it < web->n; it+=nproc){
             //добавить работы в окно
             //for(map<int, int>::const_iterator _it = web->verVec[it].flow.begin(); _it != web->verVec[it].flow.end(); _it++){
@@ -394,7 +427,7 @@ list< list<Window*> > CreateWindows(Web* web)
 
                 win = new Window;
                 //открываем новое окно
-                curtime+=web->cw;
+                curtime+=float(web->cw)/web->processors[iproc]->performance;
                 win->start = curtime;
                 win->partition = web->verVec[it].firstPart;
             }
@@ -402,7 +435,7 @@ list< list<Window*> > CreateWindows(Web* web)
             //анализ средней части
             if (chWdw != 0){
                 //закрыть то, что началось
-                curtime+=web->verVec[it].partIn[web->verVec[it].firstPart];
+                curtime+=float(web->verVec[it].partIn[web->verVec[it].firstPart])/web->processors[iproc]->performance;
                 win->finish = curtime;
                 // добавить работы
                 for(map<int, int>::const_iterator _it = web->verVec[it].flow.begin(); _it != web->verVec[it].flow.end(); _it++){
@@ -423,10 +456,10 @@ list< list<Window*> > CreateWindows(Web* web)
                 for(set<int>::iterator its = web->verVec[it].setpart.begin(); its != web->verVec[it].setpart.end(); its++){
                     if (*its == web->verVec[it].lastPart || *its == web->verVec[it].firstPart) continue;
                     win = new Window;
-                    curtime+=web->cw;
+                    curtime+=float(web->cw)/web->processors[iproc]->performance;
                     win->start = curtime;
                     win->partition = *its;
-                    curtime+=web->verVec[it].partIn[*its];
+                    curtime+=float(web->verVec[it].partIn[*its])/web->processors[iproc]->performance;
                     win->finish = curtime;
                     // добавить работы
                     for(map<int, int>::const_iterator _it = web->verVec[it].flow.begin(); _it != web->verVec[it].flow.end(); _it++){
@@ -445,13 +478,13 @@ list< list<Window*> > CreateWindows(Web* web)
 
                 }
                 win = new Window;
-                curtime+=web->cw;
+                curtime+=float(web->cw)/web->processors[iproc]->performance;
                 win->start = curtime;
                 win->partition = web->verVec[it].lastPart;
             }
 
 
-            curtime+=web->verVec[it].partIn[web->verVec[it].lastPart];
+            curtime+=float(web->verVec[it].partIn[web->verVec[it].lastPart])/web->processors[iproc]->performance;
             // добавить работы
             for(map<int, int>::const_iterator _it = web->verVec[it].flow.begin(); _it != web->verVec[it].flow.end(); _it++){
               if (web->verVec[_it->first].part != win->partition || _it->first == 0 || _it->first == 1 ) continue;
@@ -468,13 +501,13 @@ list< list<Window*> > CreateWindows(Web* web)
 
             //анализ правой части
             if (web->verVec[it].isRWin) {
-                curtime = web->verVec[it].finTime - web->cw;
+                curtime = web->verVec[it].finTime - float(web->cw)/web->processors[iproc]->performance;
                 win->finish = curtime;
                 windows.push_back(win);
 
                 win = new Window;
                 //открываем новое окно
-                curtime+=web->cw;
+                curtime+=float(web->cw)/web->processors[iproc]->performance;
                 win->start = curtime;
                 win->partition = web->verVec[it+nproc].firstPart;
             }
