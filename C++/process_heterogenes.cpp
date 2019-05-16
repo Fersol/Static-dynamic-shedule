@@ -9,7 +9,7 @@ vector<Processor*> ReadSystemFromFile(string filename)
     ifstream file(filename);
     // if (!file.exists()) return tasks;
     if (!file.is_open()){ // если файл не открыт
-        std::cout << "Файл не может быть открыт!\n";
+        std::cout << "Couldn't open system file!\n";
         return vector<Processor*>();
     } // сообщить об этом
     // if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) return tasks;
