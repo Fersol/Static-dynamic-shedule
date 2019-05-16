@@ -269,8 +269,8 @@ void Web::maxflow()
      verVec[0].h = n;
 
      for(int i =0; i < q;i++){
-         decide_proc(partitionOrder[i]);
-         //cout << QP[i];
+         decide_proc(partitionOrder[i],-1);
+         cout <<"Partition "<< partitionOrder[i] <<":"<<QP[partitionOrder[i]];
      }
 
 
@@ -279,7 +279,7 @@ void Web::maxflow()
      while (!isendwork)
      {  
          hints = nproc*nproc - 1;
-        //  cout << "Number of hints:" << hints << endl;
+         cout << "Number of hints:" << hints << endl;
          isendwork = true;
          verVec[0].h = attemptCount;
          for(map<int,int>::iterator it = verVec[0].cap.begin(); it != verVec[0].cap.end(); it++)
@@ -303,10 +303,10 @@ void Web::maxflow()
          while (!isend)
          {
             isend = true;
-            // cout << "New way" << endl;
+            cout << "New way" << endl;
             for (int i = 1; i < q + 1; i++)//по порядку разделов
             {   
-                // cout << "Partition now:" << i << endl;
+                cout << "Partition now:" << i << endl;
                 bool is_first = true;
                 while (!P[i].empty() || !P[0].empty())
                 {   
@@ -793,6 +793,7 @@ void Web::part_from_proc(int q, int proc){
 
     // Назначить новый процессор
     decide_proc(q,proc);
+    cout << "New Proc" << q <<endl;
 }
 
 void Web::decide_proc(int part, int prohibit_proc){
@@ -808,13 +809,16 @@ void Web::decide_proc(int part, int prohibit_proc){
         std::inserter(result, result.begin()));
         if (result != partitionFunctionality[part]){
             isFunctionality = false;
+            //cout << "false part" << part << ": proc " << i << endl;
         }
-        if (processorLoad[i] >= freeSpace && i != prohibit_proc && isFunctionality) {
+        if (processorLoad[i] > freeSpace && i != prohibit_proc && isFunctionality) {
             idxProc = i;
             freeSpace = processorLoad[i]; 
         }
+        //cout << "proc:" << idxProc << endl;
     }
 
+    cout << "finel proc:" << idxProc;
     processorLoad[idxProc] -= complexity;
     QP[part] = idxProc;
 
