@@ -8,7 +8,7 @@ int main(int argc, char** argv){
     string  filenametasks = argv[2];
     string  filenameprocessors = argv[3];
 
-    string filenamewindows = split(filenametasks, ".")[0] + ".res.txt";
+    string filenamewindows = split(filenametasks, ".")[0];
 
     list<TaskHeterogenes*> tasks = ReadTasksFromFile(filenametasks);
     cout << "Tasks have been read from file\n";
