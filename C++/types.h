@@ -129,7 +129,7 @@ public:
 
     map<int, int>  processorLoad;
     map<int, int>  partitionComplexity;
-    map<int,set<string>> partitionFunctionality;
+    map<int,set<string> > partitionFunctionality;
     /**
      * Конструктор по умолчанию
      */

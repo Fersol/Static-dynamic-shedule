@@ -59,7 +59,7 @@ list< list<Window*> > CreateWindows(Web* web);
 /**
  * Запись окон в файл
  */
-bool WriteWindowsToFile(list< list<Window*> > windows, string filename, string time, string works, string eff);
+void WriteWindowsToFile(list< list<Window*> > windows, string filename, string time, string works, string eff);
 
 
 #endif // PROCESS_HETEROGENES_H
