@@ -38,7 +38,7 @@ vector<Processor*> ReadSystemFromFile(string filename)
     return processors;
 }
 
-bool WriteWindowsToFile(list< list<Window*> > windows, string filename, string time, string works, string eff)
+void WriteWindowsToFile(list< list<Window*> > windows, string filename, string time, string works, string eff)
 {
     ofstream fileres(filename+".res");
 
@@ -374,9 +374,9 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
   //время на переключение
   web.cw = cTime;
   // Создать порядок разделов по сортировке
-  vector<pair<int,int>>vec;
+  vector<pair<int,int> >vec;
   for(auto x=web.partitionComplexity.begin(); x!=web.partitionComplexity.end(); x++) vec.push_back(*x);
-    sort(vec.begin(),vec.end(),[](pair<int,int>elem1,pair<int,int>elem2){return elem1.second > elem2.second;});
+    sort(vec.begin(), vec.end(), [](pair<int,int> elem1, pair<int,int> elem2) {return elem1.second > elem2.second;});
   for(auto x:vec)web.partitionOrder.push_back(x.first);
 
   return web;
