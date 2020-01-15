@@ -112,16 +112,10 @@ void Web::push(int l_u, int u, int l_v, int v, bool is_first_epoch)
         //вершина-интервал в вершину-работу
         if ((layers[l_u].vertexes[u].type == INTERVAL) && (layers[l_v].vertexes[v].type == JOB))
         {
-         //сказать, что сюда не надо больше посылать столько
-         // записать в COR
-            // main very main
-         //layers[l].vertexes[v].cap[u] -= value;
-         //COR[qMakePair(u ,v)] = value;
-
-         ni = findnext(l_u, u);
-         pi = findprev(l_u, u);
-         checkpartdec(l_u, u, layers[l_v].vertexes[v].part, value);
-         correctwindows(l_u, u, ni, pi);
+            ni = findnext(l_u, u);
+            pi = findprev(l_u, u);
+            checkpartdec(l_u, u, layers[l_v].vertexes[v].part, value);
+            correctwindows(l_u, u, ni, pi);
         }
 
         if(v != 1 && layers[l_v].vertexes[v].exf > 0){
@@ -136,6 +130,21 @@ bool Web::discharge(int l_u, int u, bool is_first)
     bool lifted = false;
     bool is_first_epoch = true;
     while (layers[l_u].vertexes[u].exf > 0) {
+        
+
+        // проталкивание в сток, это первое возомжное действие
+        if (l_u >= layer_int) {
+            // это слой с интервалами
+            if (layers[l_u].vertexes[u].capacity > layers[l_u].vertexes[u].flow){
+                int value = layers[l_u].vertexes[u].exf;
+                if (layers[l_u].vertexes[u].flow + value > layers[l_u].vertexes[u].capacity){
+                    value = layers[l_u].vertexes[u].capacity - layers[l_u].vertexes[u].flow;
+                } 
+                layers[l_u].vertexes[u].exf -= value;
+                layers[l_u].vertexes[u].flow += value;
+            }
+        } 
+
         // проход по соседям
         for(Neighbors::iterator it_layer = layers[l_u].vertexes[u].neighbors.begin(); it_layer != layers[l_u].vertexes[u].neighbors.end(); it_layer++){
             map<int, NeighborInfo > layer_neighbors = it_layer->second;
@@ -143,40 +152,35 @@ bool Web::discharge(int l_u, int u, bool is_first)
             for (map<int, NeighborInfo >::iterator it = layer_neighbors.begin(); it != layer_neighbors.end(); it++){
                 int v = it->first; // Номер вершины соседа
                 NeighborInfo vertex_info = it->second;
-                
-                // проталкивание в сток  - Его не будет
-                // if (v == dest && layers[l].vertexes[u].cap[v] > layers[l].vertexes[u].flow[v]){
-                // push(u, v, is_first_epoch);
-                // }
 
                 //Если можно - протолкнуть
                 if (layers[l_u].vertexes[u].neighbors[l_v][v].cap > layers[l_u].vertexes[u].neighbors[l_v][v].flow && layers[l_u].vertexes[u].h == layers[l_v].vertexes[v].h + 1)
                 {   
                     push(l_u, u, l_v, v, is_first_epoch);
-                    // TODO эту часть
-                    // if (v == 0){
-                    //     if (hints != 0 && layers[l].vertexes[u].type == JOB){
-                    //         // надо что-то менять
-                    //         //    cout << "We want hint" << endl;
-                    //         hints--;
-                    //         part_from_proc(layers[l].vertexes[u].part, QP[layers[l].vertexes[u].part]);
-                    //         //  decide_proc(layers[l].vertexes[u].part);
-                    //         //    cout << "We execute part drawback" << endl;
-                    //         lift(u);
-                    //         lifted = true;
-                    //         cur = layers[l].vertexes[u].cap.begin();
-                    //         continue;
-                    //     }
-                    //     else{
-                    //         push(u, v, is_first_epoch);
-                    //     }
+                }
+            }
+        }
 
-                //     // }
-                // }
-                // else{
-                //     // сначала проверяем поток дальше
-                // //if (!is_first_epoch || layers[l].vertexes[v].type == INTERVAL && layers[l].vertexes[u].cap[v] - test(u,v)*cw > layers[l].vertexes[v].flow[dest] + layers[l].vertexes[u].flow[v] + layers[l].vertexes[v].exf )
-                  //  push(u, v, is_first_epoch);
+        if (l_u < layer_int) {
+            // это слой с работами
+            // если уже никуда не проталкивается// TODO n
+            if (layers[l_u].vertexes[u].exf > layers[l_u].vertexes[u].h > n){
+                if (hints != 0){
+                    // надо что-то менять
+                    //    cout << "We want hint" << endl;
+                    hints--;
+                    part_from_proc(layers[l_u].vertexes[u].part, QP[layers[l_u].vertexes[u].part]);
+                    //  decide_proc(layers[l].vertexes[u].part);
+                    //    cout << "We execute part drawback" << endl;
+                    lift(l_u, u);
+                    lifted = true;
+                    continue;
+                }
+                else {
+                    // Убираем поток навсегда отсюда
+                    int value = layers[l_u].vertexes[u].exf;
+                    layers[l_u].vertexes[u].exf -= value;
+                    layers[l_u].vertexes[u].flow += value;
                 }
             }
         }
@@ -342,8 +346,7 @@ void Web::deletework(int l_u, int u)
 
 double Web::Effectivness()
 {   
-    // Переделать
-    // return -(double)layers[l].vertexes[0].exf/hard;
+    return (double)source_flow/hard;
     return 1;
 }
 
