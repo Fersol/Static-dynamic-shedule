@@ -76,9 +76,20 @@ struct Window
     map<int, float> works;
 };
 
+struct NeighborInfo
+{
+    int flow = 0;
+    int cap = 0;
+};
+//typedef std::pair<int, int> NeighborInfo;
+
+typedef map<int, map<int, NeighborInfo> > Neighbors;
+
 struct Vertex
 {
  public:
+  int l = 0; // слой вершины ?
+  int me = 0; // номер вершины в слое ? 
   int exf = 0;					//избыточный поток через вершину
   int part = 0;					//разделы к которым принадлежит вершина для работ, 0 для интервалов
   int h = 0;					//высота вершины
@@ -89,8 +100,12 @@ struct Vertex
   long long duration = 0;
   set<string> options; // метки вершины
   //здесь определены соседи (в следующих 2-х строчках
-  map<int, int> flow;
-  map<int, int> cap;
+  Neighbors neighbors;
+  //neighbors[0][2].flow = neighbors[]
+//   map<int, int> flow;
+//   map<int, int> cap;
+  int capacity; // cколько вершина может принять потока
+  int flow; // сколько вершина приняла потока
   int numTask;     //номер задания
   int chWdw = 0;		  		//количество переключений в интервале = количество разделов - 1;
   VType type = DEFAULT;		//тип вершины в зависимости от слоя - работа, интервал, сток, исток
@@ -98,12 +113,18 @@ struct Vertex
   //хранит кол-во поток каждого раздела в вершину
   //Только для вершин интервалов
   set<int> setpart;//множество разделов
-  int nextItr = 0;//следущая вершина интервал по времени, 0 - значит нет
-  int prevItr = 0;//предыдущая вершина интервал по времени, 0 - значит нет
+//   int nextItr = 0;//следущая вершина интервал по времени, 0 - значит нет
+//   int prevItr = 0;//предыдущая вершина интервал по времени, 0 - значит нет
   bool isRWin = false;//есть ли переключение на правом стыке интервала
   bool isLWin = false;//есть ли переключение на левом стыке интервала
   int firstPart = 0;// 0 - значит нет
   int lastPart = 0;// 0 - значит нет
+};
+
+class Layer
+{ 
+ public:
+  vector<Vertex> vertexes;
 };
 
 class Web
@@ -115,13 +136,17 @@ public:
     int nproc;           // число процессоров
     int numOfWork;       //количество вершин-работ
     int q;				 //количество разделов
-    int src;   			 //номер вершины источника
-    int dest;			 //номер вершины стока
+    int source_flow; // Размер потока из источника
+    int dest_flow; // Размер потока в сток
+    int layer_int; // Первый слой с интервалами
+    // int src;   			 //номер вершины источника
+    // int dest;			 //номер вершины стока
     int hard;            //сложность расписания
    // QMap< QPair<int, int>, int > COR; // коррекции сети, которые были сделаны из работ в интервалы
-    map< int,set<int> > P;    //переполненные вершины по разделам, 0 - вершины интервалы
-    map< int, set<int> > vPart; // номера вершин по разделам
-    vector<Vertex> verVec;   //cами вершины
+    map<int,set<int> > P;    //переполненные вершины по разделам, 0 - вершины интервалы
+    map<int, set<int> > vPart; // номера вершин по разделам
+    map<int, Layer> layers;   //cлои c вершинами
+    // vector<Vertex> verVec;   //cами вершины
     map< int, int> QP; // Соответствие раздела процессору.
     vector<Processor*> processors;
     int mainLoop; // НОК работ - интервал планирования
@@ -129,7 +154,7 @@ public:
 
     map<int, int>  processorLoad;
     map<int, int>  partitionComplexity;
-    map<int,set<string> > partitionFunctionality;
+    map<int, set<string> > partitionFunctionality;
     /**
      * Конструктор по умолчанию
      */
@@ -143,12 +168,12 @@ public:
     /**
      * Подъем вершины
      */
-    void lift(int u);
+    void lift(int l, int u);
 
     /**
      * Создать перключение окна в интервале (только для вершин интервалов)
      */
-    void window(int u);
+    void window(int l, int u);
     
     /**
      * Восстановить сеть от блоков по неудачам
@@ -159,18 +184,18 @@ public:
     /**
      * Отменить перключение окна в интервале (только для вершин интервалов)
      */
-    void clwindow(int u);
+    void clwindow(int l, int u);
 
     /**
      * Проталкивание потока с учетом раздела
      */
-    void push(int u, int v, bool isfull);
+    void push(int l1, int u, int l2, int v, bool isfull);
 
     /**
      * Разгрузка вершины (протолкнуть по максимуму) true - если подъем был
      * Подается на вход номер вершины
      */
-    bool discharge(int u, bool is_first);
+    bool discharge(int l, int u, bool is_first);
 
     /**
      * Обычный алгоритм поиска максимального потока медотодом поднять и в начало
@@ -180,7 +205,7 @@ public:
     /**
      * Удаляет работу из сети
      */
-    void deletework(int u);
+    void deletework(int l, int u);
 
     /**
      * Возвращает число окон, которые будут переключены при проталкивании потока из u в v
@@ -188,7 +213,7 @@ public:
      * @param v - вершина интервал
      * @return
      */
-    int test(int u, int v, int value);
+    int test(int l1, int u, int l2, int v, int value);
 
     /**
      * Считает эффективность построенных окон по времнной сложности размещенных задач
@@ -203,7 +228,7 @@ public:
      * @param ni - следующий непустой интервал или 0, если его нет
      * @param pi - предыдущий непустой интревал или 0, если его нет
      */
-    void checkpartadd(int u, int part, int value, int ni, int pi);
+    void checkpartadd(int l, int u, int part, int value, int ni, int pi);
 
     /**
      * Учитывает раздел для вершины при отведении потока
@@ -211,7 +236,7 @@ public:
      * @param part - номер раздела, который добавляется
      * @param value - размер добавляемого потока
      */
-    void checkpartdec(int v, int part, int value);
+    void checkpartdec(int l, int v, int part, int value);
 
     /**
      * Корректирует окна для данной вершины
@@ -219,21 +244,21 @@ public:
      * @param ni - следующий непустой интервал или 0, если его нет
      * @param pi - предыдущий непустой интревал или 0, если его нет
      */
-    void correctwindows(int v, int ni, int pi);
+    void correctwindows(int l, int v, int ni, int pi);
 
     /**
      * Ищет следующий непустой интервал
      * @param v - номер вершины-интервала
      * @return номер следующего интервала, 0 - если его нет
      */
-    int findnext(int v);
+    int findnext(int l, int v);
 
     /**
      * Ищет предыдущий непустой интервал
      * @param v - номер вершины-интервала
      * @return номер следующего интервала, 0 - если его нет
      */
-    int findprev(int v);
+    int findprev(int l, int v);
 
     /**
      * Вернуть проводимости между работами и интервалами
