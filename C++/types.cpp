@@ -85,7 +85,15 @@ void Web::push(int l_u, int u, int l_v, int v, bool is_first_epoch)
 {
         int ni, pi;
         int value = std::min(layers[l_u].vertexes[u].neighbors[l_v][v].cap - layers[l_u].vertexes[u].neighbors[l_v][v].flow, layers[l_u].vertexes[u].exf);
+        cout << "DEST CAPACITY " << layers[l_v].vertexes[v].capacity << endl;
+        cout << "DEST FLOW " << layers[l_v].vertexes[v].flow << endl;
+        cout << "DEST exf " << layers[l_v].vertexes[v].exf << endl; 
+        cout << "VALUE Norm " << value << endl;
+        cout << test(l_u, u, l_v, v, value)*layers[l_u].vertexes[u].cTime << endl;
+        cout << "HMMM" << value << endl;
+        cout << layers[l_v].vertexes[v].capacity - layers[l_v].vertexes[v].flow -(test(l_u, u, l_v, v, value))*layers[l_u].vertexes[u].cTime << endl;
         if (layers[l_v].vertexes[v].type == INTERVAL && is_first_epoch) value = std::max(0,(std::min(value, layers[l_v].vertexes[v].capacity - layers[l_v].vertexes[v].flow -(test(l_u, u, l_v, v, value))*layers[l_u].vertexes[u].cTime) -layers[l_v].vertexes[v].exf));
+        cout << "VALUE " << value << endl;
         if (value == 0){
             return;
         }
@@ -129,11 +137,13 @@ bool Web::discharge(int l_u, int u, bool is_first)
 {       
     bool lifted = false;
     bool is_first_epoch = true;
+    cout << "Start discharge : " << layers[l_u].vertexes[u].exf << endl;
     while (layers[l_u].vertexes[u].exf > 0) {
-        
+        // cout << "Start" << endl;
 
         // проталкивание в сток, это первое возомжное действие
         if (l_u >= layer_int) {
+            cout << "PUSH to DEST" << endl;
             // это слой с интервалами
             if (layers[l_u].vertexes[u].capacity > layers[l_u].vertexes[u].flow){
                 int value = layers[l_u].vertexes[u].exf;
@@ -152,11 +162,16 @@ bool Web::discharge(int l_u, int u, bool is_first)
             for (map<int, NeighborInfo >::iterator it = layer_neighbors.begin(); it != layer_neighbors.end(); it++){
                 int v = it->first; // Номер вершины соседа
                 NeighborInfo vertex_info = it->second;
+                
+                cout << "NEIGHBOR " << l_v << " " << v << endl; 
+                cout << layers[l_u].vertexes[u].h << " " << layers[l_v].vertexes[v].h << endl;
+                cout << layers[l_u].vertexes[u].neighbors[l_v][v].flow << " " << layers[l_u].vertexes[u].neighbors[l_v][v].cap << endl;
 
                 //Если можно - протолкнуть
                 if (layers[l_u].vertexes[u].neighbors[l_v][v].cap > layers[l_u].vertexes[u].neighbors[l_v][v].flow && layers[l_u].vertexes[u].h == layers[l_v].vertexes[v].h + 1)
                 {   
                     push(l_u, u, l_v, v, is_first_epoch);
+                    cout << "PUSH from " << l_u << " " << u << " to " << l_v << " " << v << endl;
                 }
             }
         }
@@ -164,7 +179,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
         if (l_u < layer_int) {
             // это слой с работами
             // если уже никуда не проталкивается// TODO n
-            if (layers[l_u].vertexes[u].exf > layers[l_u].vertexes[u].h > n){
+            if (layers[l_u].vertexes[u].exf > 0 && layers[l_u].vertexes[u].h > hints_layer){
                 if (hints != 0){
                     // надо что-то менять
                     //    cout << "We want hint" << endl;
@@ -173,6 +188,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
                     //  decide_proc(layers[l].vertexes[u].part);
                     //    cout << "We execute part drawback" << endl;
                     lift(l_u, u);
+                    cout << "LIFT  " << l_u << " " << u << endl;
                     lifted = true;
                     continue;
                 }
@@ -181,6 +197,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
                     int value = layers[l_u].vertexes[u].exf;
                     layers[l_u].vertexes[u].exf -= value;
                     layers[l_u].vertexes[u].flow += value;
+                    cout << "PUSH to Source" << endl;
                 }
             }
         }
@@ -191,6 +208,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
         }
         if (!is_first_epoch){
             lift(l_u, u);
+            cout << "LIFT  " << l_u << " " << u << endl;
             is_first_epoch = true;
             lifted = true;
         }
@@ -207,11 +225,11 @@ void Web::maxflow()
      //layers[l].vertexes[0].h = n; Это лишнее - общая переменная будет в сети
     
     // Опредляем порядок разделов
-    for(int i =0; i < q;i++){
-        decide_proc(partitionOrder[i],-1);
-        cout <<"Partition "<< partitionOrder[i] <<":"<<QP[partitionOrder[i]];
-    }
-
+    // for(int i =0; i < q;i++){
+    //     decide_proc(partitionOrder[i],-1);
+    //     cout <<"Partition "<< partitionOrder[i] <<":"<<QP[partitionOrder[i]];
+    // }
+     source_flow = 0;
      bool isfirsttime = true;
      bool isendwork = false;
      while (!isendwork)
@@ -222,6 +240,23 @@ void Web::maxflow()
         //layers[l].vertexes[0].h = attemptCount;
 
         // Выставляем начальные потоки - пересмотреть
+        cout << "Layer int: " << layer_int << endl;
+        for(int q=1; q < layer_int; q++){
+            for(int i = 0; i < layers[q].vertexes.size(); i++){
+                layers[q].vertexes[i].exf = layers[q].vertexes[i].duration;
+                cout << q << " " << i << " " << layers[q].vertexes[i].exf << endl;
+                source_flow += layers[q].vertexes[i].exf;
+                layers[q].vertexes[i].h = 1;
+            }
+        }
+
+        // Выставляем высоты для остальных вершин
+        for(int q=layer_int; q < layer_int + nproc; q++){
+            for(int i = 0; i < layers[q].vertexes.size(); i++){
+                layers[q].vertexes[i].h = 0;
+            }
+        }
+
         //  for(map<int,int>::iterator it = layers[l].vertexes[0].cap.begin(); it != layers[l].vertexes[0].cap.end(); it++)
         //  {
         //     int value = layers[l].vertexes[0].cap[it->first] - layers[l].vertexes[0].flow[it->first] ;
@@ -236,7 +271,7 @@ void Web::maxflow()
         if (isfirsttime)
         {   
             // TODO - нужна переменная, которая за этим следит
-            hard = 100; //-layers[l].vertexes[0].exf;
+            hard = source_flow;
             isfirsttime = false;
         }
 
@@ -246,65 +281,48 @@ void Web::maxflow()
         {
             isend = true;
             cout << "New way" << endl;
-            for (int i = 1; i < q + 1; i++)//по порядку разделов по порядку слоев
+            for (int i = 1; i < q + 1; i++)//по порядку разделов по порядку слоев 
             {   
-                cout << "Partition now:" << i << endl;
+                cout << "Partition now: " << i << " to " << QP[i] << endl;
+                Layer& current_layer = layers[i];
+                Layer& target_layer = layers[QP[i]];
                 bool is_first = true;
-                while (!P[i].empty() || !P[0].empty())
+                cout << "For is started " << current_layer.extended.size() << " " << target_layer.extended.size() << endl;
+                while (!current_layer.extended.empty() || !target_layer.extended.empty())
                 {   
                     // cout << "We are here" << endl;
                     if(is_first){
-                        for(set<int>::iterator it1 = P[i].begin(); it1 != P[i].end(); it1++){
-                            discharge(0, *it1, true);
+                        for(set<int>::iterator it1 = current_layer.extended.begin(); it1 != current_layer.extended.end(); it1++){
+                            cout << "Discharge " << i << " " << *it1 << endl;
+                            discharge(i, *it1, true);
                         }
                         is_first = false;
                     }
 
-                    while(!P[0].empty()){
-                        set<int>::iterator it0 = P[0].begin();
-                        discharge(0, *it0, false);
+                    while(!target_layer.extended.empty()){
+                        set<int>::iterator it0 = target_layer.extended.begin();
+                        cout << "Discharge " << QP[i] << " " << *it0 << endl;
+                        discharge(QP[i], *it0, false);
                         isend = false;
-                        P[0].erase(*it0);
+                        target_layer.extended.erase(*it0);
                     }
 
-                    if(!P[i].empty()){
-                        set<int>::iterator it = P[i].begin();
-                        discharge(0, *it, false);
+                    if(!current_layer.extended.empty()){
+                        set<int>::iterator it = current_layer.extended.begin();
+                        cout << "Discharge " << i << " " << *it << endl;
+                        discharge(i, *it, false);
                         isend = false;
-                        P[i].erase(*it);
+                        current_layer.extended.erase(*it);
                     }
                 }
+                cout << "For is ended " << current_layer.extended.size() << " " << target_layer.extended.size() << endl;
             }
-            // cout << "For is ended" << endl;
+            cout << "End for partitions " << endl;
          }
-        //  cout << "We are stuck here!!!" << endl;
-        // if (!istryedSecond){
-         //   isendwork = false;
-        //    istryedSecond = true;
-        //    back();
-        //    continue;
-        // }
-         //проверка на размещение работ целиком
-         // удаляем ту, которой больше всего не хватило
-         int max_not_dist_flow = 0;
-         int it_to_del = -1;
-         for(int it = 2; it < numOfWork +2; it ++){
-            if (true) // (layers[l].vertexes[0].cap[it] - layers[l].vertexes[0].flow[it] > max_not_dist_flow) //работа размещена не полностью
-            {   
-                //max_not_dist_flow = layers[l].vertexes[0].cap[it] - layers[l].vertexes[0].flow[it];
-                it_to_del = it;
-                //isendwork = false;
-                //    deletework(it_to_del);
-            }
-         }
-         if (it_to_del != -1){
-             isendwork = false;
-             deletework(0, it_to_del);
-             back();
-             //noflow();
-         }
-       }
+        cout << "What' new!!!" << endl;
 
+        // Тут нужно будет удалить работу TODO
+       }
 
 }
 
@@ -339,6 +357,9 @@ void Web::deletework(int l_u, int u)
                 // layers[l].vertexes[0].flow[u] = 0;
                 // layers[l].vertexes[u].flow[0] = 0;
                 // layers[l].vertexes[0].exf += value;
+                layers[l_u].vertexes[u].flow = 0;
+                layers[l_u].vertexes[u].exf = 0;
+                source_flow -= value;
             }
         }
     }
@@ -346,7 +367,7 @@ void Web::deletework(int l_u, int u)
 
 double Web::Effectivness()
 {   
-    return (double)source_flow/hard;
+    return (double)source_flow;
     return 1;
 }
 

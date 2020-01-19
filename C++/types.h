@@ -125,12 +125,15 @@ class Layer
 { 
  public:
   vector<Vertex> vertexes;
+  set<int> extended; // переполненные вершины
+
 };
 
 class Web
 {
 public:
     int hints;           // число попыток на перестройку сети, до скидывания работы. -> lift
+    int hints_layer;     // число попыток
     int cw; 			 //время на переключение окна
     int n;				 //количество вершин
     int nproc;           // число процессоров
@@ -144,10 +147,9 @@ public:
     int hard;            //сложность расписания
    // QMap< QPair<int, int>, int > COR; // коррекции сети, которые были сделаны из работ в интервалы
     map<int,set<int> > P;    //переполненные вершины по разделам, 0 - вершины интервалы
-    map<int, set<int> > vPart; // номера вершин по разделам
     map<int, Layer> layers;   //cлои c вершинами
     // vector<Vertex> verVec;   //cами вершины
-    map< int, int> QP; // Соответствие раздела процессору.
+    map< int, int> QP; // Соответствие раздела процессору (слою).
     vector<Processor*> processors;
     int mainLoop; // НОК работ - интервал планирования
     vector<int> partitionOrder;
