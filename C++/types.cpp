@@ -197,6 +197,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
                     int value = layers[l_u].vertexes[u].exf;
                     layers[l_u].vertexes[u].exf -= value;
                     layers[l_u].vertexes[u].flow += value;
+                    // source_flow -= value;
                     cout << "PUSH to Source" << endl;
                 }
             }
@@ -249,6 +250,8 @@ void Web::maxflow()
                 layers[q].vertexes[i].h = 1;
             }
         }
+
+        if (isfirsttime) hard = source_flow;
 
         // Выставляем высоты для остальных вершин
         for(int q=layer_int; q < layer_int + nproc; q++){
@@ -357,22 +360,27 @@ void Web::deletework(int l_u, int u)
                 // layers[l].vertexes[0].flow[u] = 0;
                 // layers[l].vertexes[u].flow[0] = 0;
                 // layers[l].vertexes[0].exf += value;
-                layers[l_u].vertexes[u].flow = 0;
-                layers[l_u].vertexes[u].exf = 0;
-                source_flow -= value;
+                
             }
         }
     }
+    // Убрать в начале работу
+    source_flow -= layers[l_u].vertexes[u].capacity;
+    layers[l_u].vertexes[u].flow = layers[l_u].vertexes[u].capacity;
+    layers[l_u].vertexes[u].exf = 0;
+
+    num_of_works -= 1;
 }
 
 double Web::Effectivness()
 {   
-    return (double)source_flow;
+    return (double)source_flow /hard;
     return 1;
 }
 
 int Web::test(int l_u, int u, int l_v, int v, int value)
-{
+{   
+    cout << "TESTING" << endl;
     if (layers[l_u].vertexes[u].type == JOB && layers[l_v].vertexes[v].type == INTERVAL){
         checkpartadd(l_v, v, layers[l_u].vertexes[u].part, value, findnext(l_v, v), findprev(l_v, v));
         correctwindows(l_v, v, findnext(l_v, v),findprev(l_v, v));
@@ -703,7 +711,7 @@ int Web::sheduledjobs()
     //     if (layers[l].vertexes[0].cap[it] != 0) k++;
     // }
     // return k;
-    return 0;
+    return num_of_works;
 }
 
 
