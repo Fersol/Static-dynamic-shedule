@@ -234,6 +234,7 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
 
    Vertex temp;
 
+    web.num_of_works = jobs.size();
    for (list<JobHeterogenes*>::iterator it = jobs.begin(); it != jobs.end(); it++)
    {        
            // Ищем интервал планирования
@@ -339,7 +340,6 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
         n = n + it->second.vertexes.size();
     }
     web.n = n;
-    web.numOfWork = jobs.size();
     web.q = maxpart;
 
     // добавляем вместительность процессоров
