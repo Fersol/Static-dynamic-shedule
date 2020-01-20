@@ -142,7 +142,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
         // cout << "Start" << endl;
 
         // проталкивание в сток, это первое возомжное действие
-        if (l_u >= layer_int) {
+        if (l_u > q) {
             cout << "PUSH to DEST" << endl;
             // это слой с интервалами
             if (layers[l_u].vertexes[u].capacity > layers[l_u].vertexes[u].flow){
@@ -176,7 +176,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
             }
         }
 
-        if (l_u < layer_int) {
+        if (l_u <= q) {
             // это слой с работами
             // если уже никуда не проталкивается// TODO n
             if (layers[l_u].vertexes[u].exf > 0 && layers[l_u].vertexes[u].h > hints_layer){
@@ -381,9 +381,11 @@ double Web::Effectivness()
 int Web::test(int l_u, int u, int l_v, int v, int value)
 {   
     cout << "TESTING" << endl;
-    if (layers[l_u].vertexes[u].type == JOB && layers[l_v].vertexes[v].type == INTERVAL){
+    if (l_u <= q && l_v > q){
         checkpartadd(l_v, v, layers[l_u].vertexes[u].part, value, findnext(l_v, v), findprev(l_v, v));
+        cout << "TESTING1" << endl;
         correctwindows(l_v, v, findnext(l_v, v),findprev(l_v, v));
+        cout << "TESTING2" << endl;
         int win1 = layers[l_v].vertexes[v].chWdw;
         checkpartdec(l_v, v, layers[l_u].vertexes[u].part, value);
         correctwindows(l_v, v, findnext(l_v, v),findprev(l_v, v));
@@ -479,7 +481,7 @@ void Web::correctwindows(int l_v, int v, int ni, int pi)
         }
 
         //корректировка правого переключения
-        if (ni != 0)
+        if (ni != -1)
             {
          //условие открытия
          if (layers[l_v].vertexes[ni].firstPart != layers[l_v].vertexes[v].lastPart && !layers[l_v].vertexes[ni].isLWin && !layers[l_v].vertexes[v].isRWin)
@@ -519,7 +521,7 @@ void Web::correctwindows(int l_v, int v, int ni, int pi)
 
 
         //корректировка левого переключения
-        if (pi != 0)
+        if (pi != -1)
         {
          //условие открытия
          if (layers[l_v].vertexes[pi].lastPart != layers[l_v].vertexes[v].firstPart && !layers[l_v].vertexes[pi].isRWin && !layers[l_v].vertexes[v].isLWin)
@@ -568,7 +570,7 @@ void Web::correctwindows(int l_v, int v, int ni, int pi)
         }
 
         //корректировка краевых
-        if (ni == 0 || pi ==0)
+        if (ni == -1 || pi == -1)
         {
             if (layers[l_v].vertexes[v].isLWin)
             {
@@ -580,12 +582,12 @@ void Web::correctwindows(int l_v, int v, int ni, int pi)
                 clwindow(l_v, v);
                 layers[l_v].vertexes[v].isRWin = false;
             }
-            if (ni != 0 && layers[l_v].vertexes[ni].isLWin)
+            if (ni != -1 && layers[l_v].vertexes[ni].isLWin)
             {
                 clwindow(l_v, ni);
                 layers[l_v].vertexes[ni].isLWin = false;
             }
-            if (pi != 0 && layers[l_v].vertexes[pi].isRWin)
+            if (pi != -1 && layers[l_v].vertexes[pi].isRWin)
             {
                 clwindow(l_v, pi);
                 layers[l_v].vertexes[pi].isRWin = false;
@@ -635,17 +637,18 @@ void Web::correctwindows(int l_v, int v, int ni, int pi)
 int Web::findnext(int l_v, int v)
 {
     int ni = v + 1;
-    while (ni != 0 && layers[l_v].vertexes[ni].firstPart == 0)
+    while (ni != layers[l_v].vertexes.size() && layers[l_v].vertexes[ni].firstPart == 0)
     {
         ni = ni + 1;
     }
+    if (ni == layers[l_v].vertexes.size()) ni = -1;
     return ni;
 }
 
 int Web::findprev(int l_v, int v)
 {
     int pi = v - 1;
-    while (pi != 0 && layers[l_v].vertexes[pi].lastPart == 0)
+    while (pi != -1 && layers[l_v].vertexes[pi].lastPart == 0)
     {
         pi = pi - 1;
     }
