@@ -126,7 +126,7 @@ class Layer
  public:
   vector<Vertex> vertexes;
   set<int> extended; // переполненные вершины
-
+  int ptype = -1; // тип процессора слоя, -1 - слои с разделами.
 };
 
 class Web

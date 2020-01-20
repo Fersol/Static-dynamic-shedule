@@ -292,7 +292,6 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
            temp.finTime = next(it)->first;
            temp.type = INTERVAL;
            temp.h = 0;
-           temp.proc = i;
 
            temp.duration = (temp.finTime - temp.stTime) * processors[i - web.layer_int]->performance;
            temp.capacity = temp.duration;
@@ -302,6 +301,10 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
            web.layers[i].vertexes.push_back(temp);
        }
    }
+    // Проставим номера процессоров
+    for (int i = web.layer_int; i < web.layer_int + web.nproc; i++){
+        web.layers[i].ptype = i - web.layer_int;
+    }
 
 
    //заполнить cap для дуг от работ до интервалов и для них же сделать flow = 0
@@ -376,49 +379,49 @@ list< list<Window*> > CreateWindows(Web* web)
     cout << "Creation of WINDOWS" << endl; 
     int nproc = web->nproc;
     // Цикл по номерам слоев
-    for(int iproc = web->layer_int; iproc < web->layer_int + web->nproc; iproc++){
+    for(int l_p = web->layer_int; l_p < web->layer_int + web->nproc; l_p++){
         list<Window*> windows;
         Window* win = new Window;
         float curtime = 0;
         cout << "First window" << endl;
 
-        for (int it = 0; it < web->layers[iproc].vertexes.size(); it++){
+        for (int it = 0; it < web->layers[l_p].vertexes.size(); it++){
 
             // подготтовительные мероприятия для облегчения вычислений
-            int chWdw = web->layers[iproc].vertexes[it].chWdw;
-            if (web->layers[iproc].vertexes[it].isLWin) chWdw--;
-            if (web->layers[iproc].vertexes[it].isRWin) chWdw--;
-            curtime = web->layers[iproc].vertexes[it].stTime;
+            int chWdw = web->layers[l_p].vertexes[it].chWdw;
+            if (web->layers[l_p].vertexes[it].isLWin) chWdw--;
+            if (web->layers[l_p].vertexes[it].isRWin) chWdw--;
+            curtime = web->layers[l_p].vertexes[it].stTime;
 
             // анализ самого начала
             if (it == 0){
                 win->start = 0;
-                win->partition = web->layers[iproc].vertexes[it].firstPart;
+                win->partition = web->layers[l_p].vertexes[it].firstPart;
             }
 
             // для пустых интервалов
-            if (win->partition == 0 && web->layers[iproc].vertexes[it].firstPart != 0) win->partition = web->layers[iproc].vertexes[it].firstPart;
+            if (win->partition == 0 && web->layers[l_p].vertexes[it].firstPart != 0) win->partition = web->layers[l_p].vertexes[it].firstPart;
 
             // анализ левой части
-            if (web->layers[iproc].vertexes[it].isLWin) {
+            if (web->layers[l_p].vertexes[it].isLWin) {
                 win->finish = curtime;
                 windows.push_back(win);
 
                 win = new Window;
                 //открываем новое окно
-                curtime+=float(web->cw)/web->processors[iproc - web->layer_int]->performance;
+                curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
                 win->start = curtime;
-                win->partition = web->layers[iproc].vertexes[it].firstPart;
+                win->partition = web->layers[l_p].vertexes[it].firstPart;
             }
 
             // анализ средней части
             if (chWdw != 0){
                 // закрыть то, что началось
-                curtime+=float(web->layers[iproc].vertexes[it].partIn[web->layers[iproc].vertexes[it].firstPart])/web->processors[iproc - web->layer_int]->performance;
+                curtime+=float(web->layers[l_p].vertexes[it].partIn[web->layers[l_p].vertexes[it].firstPart])/web->processors[web->layers[l_p].ptype]->performance;
                 win->finish = curtime;
 
                 // добавить работы
-                for(Neighbors::iterator it_layer = web->layers[iproc].vertexes[it].neighbors.begin(); it_layer != web->layers[iproc].vertexes[it].neighbors.end(); it_layer++){
+                for(Neighbors::iterator it_layer = web->layers[l_p].vertexes[it].neighbors.begin(); it_layer != web->layers[l_p].vertexes[it].neighbors.end(); it_layer++){
                     map<int, NeighborInfo > layer_neighbors = it_layer->second;
                     // Номер слоя соседа
                     int l_v = it_layer->first;
@@ -428,12 +431,12 @@ list< list<Window*> > CreateWindows(Web* web)
                         NeighborInfo vertex = _it->second;
                 
                         if (web->layers[l_v].vertexes[v].part != win->partition) continue;
-                        if(web->layers[l_v].vertexes[v].neighbors[iproc][it].flow > 0){
+                        if(web->layers[l_v].vertexes[v].neighbors[l_p][it].flow > 0){
                             if (win->works.count(web->layers[l_v].vertexes[v].numTask)){
-                            win->works[web->layers[l_v].vertexes[v].numTask] += float(web->layers[l_v].vertexes[v].neighbors[iproc][it].flow) /web->processors[iproc - web->layer_int]->performance;
+                            win->works[web->layers[l_v].vertexes[v].numTask] += float(web->layers[l_v].vertexes[v].neighbors[l_p][it].flow) /web->processors[web->layers[l_p].ptype]->performance;
                             }
                             else{
-                            win->works[web->layers[l_v].vertexes[v].numTask] = float(web->layers[l_v].vertexes[v].neighbors[iproc][it].flow) / web->processors[iproc - web->layer_int]->performance;
+                            win->works[web->layers[l_v].vertexes[v].numTask] = float(web->layers[l_v].vertexes[v].neighbors[l_p][it].flow) / web->processors[web->layers[l_p].ptype]->performance;
                             }
                         }
                     }
@@ -443,17 +446,17 @@ list< list<Window*> > CreateWindows(Web* web)
 
 
                 // открыть - закрыть вместе
-                for(set<int>::iterator its = web->layers[iproc].vertexes[it].setpart.begin(); its != web->layers[iproc].vertexes[it].setpart.end(); its++){
-                    if (*its == web->layers[iproc].vertexes[it].lastPart || *its == web->layers[iproc].vertexes[it].firstPart) continue;
+                for(set<int>::iterator its = web->layers[l_p].vertexes[it].setpart.begin(); its != web->layers[l_p].vertexes[it].setpart.end(); its++){
+                    if (*its == web->layers[l_p].vertexes[it].lastPart || *its == web->layers[l_p].vertexes[it].firstPart) continue;
                     win = new Window;
-                    curtime+=float(web->cw)/web->processors[iproc - web->layer_int]->performance;
+                    curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
                     win->start = curtime;
                     win->partition = *its;
-                    curtime+=float(web->layers[iproc].vertexes[it].partIn[*its])/web->processors[iproc - web->layer_int]->performance;
+                    curtime+=float(web->layers[l_p].vertexes[it].partIn[*its])/web->processors[web->layers[l_p].ptype]->performance;
                     win->finish = curtime;
 
                     // добавить работы
-                    for(Neighbors::iterator it_layer = web->layers[iproc].vertexes[it].neighbors.begin(); it_layer != web->layers[iproc].vertexes[it].neighbors.end(); it_layer++){
+                    for(Neighbors::iterator it_layer = web->layers[l_p].vertexes[it].neighbors.begin(); it_layer != web->layers[l_p].vertexes[it].neighbors.end(); it_layer++){
                         map<int, NeighborInfo > layer_neighbors = it_layer->second;
                         // Номер слоя соседа
                         int l_v = it_layer->first;
@@ -463,12 +466,12 @@ list< list<Window*> > CreateWindows(Web* web)
                             NeighborInfo vertex = _it->second;
                     
                             if (web->layers[l_v].vertexes[v].part != win->partition) continue;
-                            if(web->layers[l_v].vertexes[v].neighbors[iproc][it].flow > 0){
+                            if(web->layers[l_v].vertexes[v].neighbors[l_p][it].flow > 0){
                                 if (win->works.count(web->layers[l_v].vertexes[v].numTask)){
-                                win->works[web->layers[l_v].vertexes[v].numTask] += float(web->layers[l_v].vertexes[v].neighbors[iproc][it].flow) /web->processors[iproc - web->layer_int]->performance;
+                                win->works[web->layers[l_v].vertexes[v].numTask] += float(web->layers[l_v].vertexes[v].neighbors[l_p][it].flow) /web->processors[web->layers[l_p].ptype]->performance;
                                 }
                                 else{
-                                win->works[web->layers[l_v].vertexes[v].numTask] = float(web->layers[l_v].vertexes[v].neighbors[iproc][it].flow) / web->processors[iproc - web->layer_int]->performance;
+                                win->works[web->layers[l_v].vertexes[v].numTask] = float(web->layers[l_v].vertexes[v].neighbors[l_p][it].flow) / web->processors[web->layers[l_p].ptype]->performance;
                                 }
                             }
                         }
@@ -476,18 +479,20 @@ list< list<Window*> > CreateWindows(Web* web)
                     windows.push_back(win);
                 }
                 win = new Window;
-                curtime+=float(web->cw)/web->processors[iproc-web->layer_int]->performance;
+                curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
                 win->start = curtime;
-                win->partition = web->layers[iproc].vertexes[it].lastPart;
+                win->partition = web->layers[l_p].vertexes[it].lastPart;
             }
 
 
-            curtime+=float(web->layers[iproc].vertexes[it].partIn[web->layers[iproc].vertexes[it].lastPart])/web->processors[iproc - web->layer_int]->performance;
-            cout << "Start " <<win->start << endl;
-            cout << "Curtime " <<curtime << endl;
+            curtime+=float(web->layers[l_p].vertexes[it].partIn[web->layers[l_p].vertexes[it].lastPart])/web->processors[web->layers[l_p].ptype]->performance;
+            cout << "Start " << win->start << endl;
+            cout << "Curtime " << curtime << endl;
             // добавить работы
-            for(Neighbors::iterator it_layer = web->layers[iproc].vertexes[it].neighbors.begin(); it_layer != web->layers[iproc].vertexes[it].neighbors.end(); it_layer++){
+            for(Neighbors::iterator it_layer = web->layers[l_p].vertexes[it].neighbors.begin(); it_layer != web->layers[l_p].vertexes[it].neighbors.end(); it_layer++){
+                cout << "N!N" << endl;
                 map<int, NeighborInfo > layer_neighbors = it_layer->second;
+                cout << "N!N" << endl;
                 // Номер слоя соседа
                 int l_v = it_layer->first;
                 for (map<int, NeighborInfo >::iterator _it = layer_neighbors.begin(); _it != layer_neighbors.end(); _it++){
@@ -496,36 +501,39 @@ list< list<Window*> > CreateWindows(Web* web)
                     NeighborInfo vertex = _it->second;
             
                     if (web->layers[l_v].vertexes[v].part != win->partition) continue;
-                    if(web->layers[l_v].vertexes[v].neighbors[iproc][it].flow > 0){
+                    if(web->layers[l_v].vertexes[v].neighbors[l_p][it].flow > 0){
                         if (win->works.count(web->layers[l_v].vertexes[v].numTask)){
-                        win->works[web->layers[l_v].vertexes[v].numTask] += float(web->layers[l_v].vertexes[v].neighbors[iproc][it].flow) /web->processors[iproc - web->layer_int]->performance;
+                        win->works[web->layers[l_v].vertexes[v].numTask] += float(web->layers[l_v].vertexes[v].neighbors[l_p][it].flow) /web->processors[web->layers[l_p].ptype]->performance;
                         }
                         else{
-                        win->works[web->layers[l_v].vertexes[v].numTask] = float(web->layers[l_v].vertexes[v].neighbors[iproc][it].flow) / web->processors[iproc - web->layer_int]->performance;
+                        win->works[web->layers[l_v].vertexes[v].numTask] = float(web->layers[l_v].vertexes[v].neighbors[l_p][it].flow) / web->processors[web->layers[l_p].ptype]->performance;
                         }
                     }
                 }
             }
             //открыть последенее
+            cout << "Right" << endl;
 
             //анализ правой части
-            if (web->layers[iproc].vertexes[it].isRWin) {
-                curtime = web->layers[iproc].vertexes[it].finTime - float(web->cw)/web->processors[iproc - web->layer_int]->performance;
+            if (web->layers[l_p].vertexes[it].isRWin) {
+                cout << "isRight" << endl;
+                curtime = web->layers[l_p].vertexes[it].finTime - float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
                 win->finish = curtime;
                 windows.push_back(win);
 
                 win = new Window;
                 //открываем новое окно
-                curtime+=float(web->cw)/web->processors[iproc - web->layer_int]->performance;
+                curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
                 win->start = curtime;
-                win->partition = web->layers[iproc].vertexes[it+1].firstPart;
+                win->partition = web->layers[l_p].vertexes[it+1].firstPart;
             }
 
 
-
+            cout << "FINISH12 " << it << " " << web->layers[l_p].vertexes.size()-1 << endl;
             //анализ самого конца
-            if (it == web->layers[iproc].vertexes.size()-1){
-                win->finish = web->layers[iproc].vertexes[it].finTime;
+            if (it == web->layers[l_p].vertexes.size()-1){
+                win->finish = web->layers[l_p].vertexes[it].finTime;
+                cout << "FINISH" << win->finish << endl;
                 windows.push_back(win);
             }
 
