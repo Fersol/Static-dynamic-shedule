@@ -283,50 +283,79 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
    cout << "End of works layer\n";
    // Интервалы - это слой
 
+    // Сделаем default layer
    //сделать вершины интервалов по valforinterval, продублировать столько раз, сколько процессоров есть
    web.layer_int = maxpart + 1;
    for (map<int,int>::iterator it = valforinterval.begin(); next(it) != valforinterval.end(); it++){
-       for (int i = web.layer_int; i < web.layer_int + web.nproc; i++){
-           Vertex temp;
-           temp.stTime = it->first;
-           temp.finTime = next(it)->first;
-           temp.type = INTERVAL;
-           temp.h = 0;
+       //for (int i = web.layer_int; i < web.layer_int + web.nproc; i++){
+        Vertex temp;
+        temp.stTime = it->first;
+        temp.finTime = next(it)->first;
+        temp.type = INTERVAL;
+        temp.h = 0;
 
-           temp.duration = (temp.finTime - temp.stTime) * processors[i - web.layer_int]->performance;
-           temp.capacity = temp.duration;
-           temp.flow = 0;
-           temp.cTime = cTime;
-           temp.options = processors[i - web.layer_int]->functionality;
-           web.layers[i].vertexes.push_back(temp);
-       }
+        temp.duration = (temp.finTime - temp.stTime); //* processors[i - web.layer_int]->performance;
+        temp.capacity = temp.duration;
+        temp.flow = 0;
+        temp.cTime = cTime;
+        //temp.options = processors[i - web.layer_int]->functionality;
+        web.layers[0].vertexes.push_back(temp);
    }
-    // Проставим номера процессоров
-    for (int i = web.layer_int; i < web.layer_int + web.nproc; i++){
-        web.layers[i].ptype = i - web.layer_int;
-    }
 
 
-   //заполнить cap для дуг от работ до интервалов и для них же сделать flow = 0
+
+    // // Проставим номера процессоров
+    // for (int i = web.layer_int; i < web.layer_int + web.nproc; i++){
+    //     web.layers[i].ptype = i - web.layer_int;
+    // }
+
+
+   //заполнить cap для дуг от работ до интервалов и для них же сделать flow = 0 для default layer
    for (int l_i=1; l_i < web.layer_int ; l_i++){
         for (int i=0; i < web.layers[l_i].vertexes.size(); i++){
-            for (int l_j=web.layer_int; l_j < web.layer_int + web.nproc; l_j++){
-                 for (int j=0; j < web.layers[l_j].vertexes.size(); j++){
-                    bool isFunctionality = true;
-                    set<string> result;
-                    std::set_intersection(web.layers[l_i].vertexes[i].options.begin(),web.layers[l_i].vertexes[i].options.end(),
-                        web.layers[l_j].vertexes[j].options.begin(),web.layers[l_j].vertexes[j].options.end(),
-                        std::inserter(result, result.begin()));
-                    if (result != web.layers[l_i].vertexes[i].options){
-                        isFunctionality = false;
-                    }
-                    if (web.layers[l_i].vertexes[i].stTime <= web.layers[l_j].vertexes[j].stTime && web.layers[l_i].vertexes[i].finTime >= web.layers[l_j].vertexes[j].finTime && isFunctionality){
-                        cout << "ADD " << l_i << " " << i << " " << l_j << " " << j << endl;
-                        web.layers[l_i].vertexes[i].neighbors[l_j][j].cap = web.layers[l_j].vertexes[j].duration;
-                        web.layers[l_j].vertexes[j].neighbors[l_i][i].cap = 0;
+            for (int j=0; j < web.layers[0].vertexes.size(); j++){
+                if (web.layers[l_i].vertexes[i].stTime <= web.layers[0].vertexes[j].stTime && web.layers[l_i].vertexes[i].finTime >= web.layers[0].vertexes[j].finTime){
+                    cout << "ADD DEFAULT " << l_i << " " << i << " " << 0 << " " << j << endl;
+                    web.layers[l_i].vertexes[i].neighbors[0][j].cap = web.layers[0].vertexes[j].duration;
+                    web.layers[0].vertexes[j].neighbors[l_i][i].cap = 0;
 
-                        // web.layers[l_i].vertexes[i].neighbors[l_j][j].cap = 0;
-                        // web.layers[l_j].vertexes[j].neighbors[l_i][i].flow = 0;
+                }
+            }
+        }
+    }
+
+    // Добавляем процессоры по дефолтному слою
+    for (int iproc=0; iproc < web.nproc; iproc++){
+        int l_j = web.layer_int + iproc;
+        auto options = processors[iproc]->functionality;
+        int proc_performance = processors[iproc]->performance;
+        cout << "PERFORMANCE " << proc_performance << endl;
+        // Копирование слоя
+        web.layers[l_j] = web.layers[0];
+        web.layers[l_j].ptype = iproc;
+        cout << web.layers[l_j].vertexes.size() << endl;
+        cout << web.layers[l_j].vertexes[0].neighbors[1][0].cap << endl;
+        cout << web.layers[l_j].vertexes[0].neighbors[1][0].cap << endl;
+        // Изменяем параметры
+        for (int l_i=1; l_i < web.layer_int ; l_i++){
+            bool isFunctionality = true;
+            set<string> result;
+            std::set_intersection(web.layers[l_i].vertexes[0].options.begin(), web.layers[l_i].vertexes[0].options.end(),
+                options.begin(), options.end(),
+                std::inserter(result, result.begin()));
+            if (result != web.layers[l_i].vertexes[0].options){
+                isFunctionality = false;
+            }
+            if (isFunctionality) {
+                for(int i = 0; i < web.layers[l_i].vertexes.size(); i++){
+                    for (map<int, NeighborInfo >::iterator it = web.layers[l_i].vertexes[i].neighbors[0].begin(); it != web.layers[l_i].vertexes[i].neighbors[0].end(); it++){
+                        int j = it->first;;
+                        cout << "ADD " << l_i << " " << i << " " << l_j << " " << j << endl;
+                        web.layers[l_i].vertexes[i].neighbors[l_j][j].cap = web.layers[l_i].vertexes[i].neighbors[0][j].cap * proc_performance;
+                        web.layers[l_j].vertexes[j].capacity = web.layers[l_i].vertexes[i].neighbors[l_j][j].cap;
+                        cout << web.layers[l_i].vertexes[i].neighbors[l_j][j].cap << endl;
+                        // cout << web.layers[l_j].vertexes[j].capacity << endl;
+                        // cout << web.layers[0].vertexes[j].capacity << endl;
                     }
                 }
             }
@@ -379,7 +408,7 @@ list< list<Window*> > CreateWindows(Web* web)
     cout << "Creation of WINDOWS" << endl; 
     int nproc = web->nproc;
     // Цикл по номерам слоев
-    for(int l_p = web->layer_int; l_p < web->layer_int + web->nproc; l_p++){
+    for(int l_p = web->q+1; l_p < web->layer_int + web->nproc; l_p++){
         list<Window*> windows;
         Window* win = new Window;
         float curtime = 0;
@@ -387,18 +416,20 @@ list< list<Window*> > CreateWindows(Web* web)
 
         for (int it = 0; it < web->layers[l_p].vertexes.size(); it++){
 
+            cout << " start " << l_p << endl;
             // подготтовительные мероприятия для облегчения вычислений
             int chWdw = web->layers[l_p].vertexes[it].chWdw;
             if (web->layers[l_p].vertexes[it].isLWin) chWdw--;
             if (web->layers[l_p].vertexes[it].isRWin) chWdw--;
             curtime = web->layers[l_p].vertexes[it].stTime;
 
+            cout << " start " << endl;
             // анализ самого начала
             if (it == 0){
                 win->start = 0;
                 win->partition = web->layers[l_p].vertexes[it].firstPart;
             }
-
+            cout << " start " << endl;
             // для пустых интервалов
             if (win->partition == 0 && web->layers[l_p].vertexes[it].firstPart != 0) win->partition = web->layers[l_p].vertexes[it].firstPart;
 
@@ -413,7 +444,7 @@ list< list<Window*> > CreateWindows(Web* web)
                 win->start = curtime;
                 win->partition = web->layers[l_p].vertexes[it].firstPart;
             }
-
+            cout << " start " << endl;
             // анализ средней части
             if (chWdw != 0){
                 // закрыть то, что началось

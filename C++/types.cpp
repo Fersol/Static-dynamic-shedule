@@ -85,18 +85,19 @@ void Web::push(int l_u, int u, int l_v, int v, bool is_first_epoch)
 {
         int ni, pi;
         int value = std::min(layers[l_u].vertexes[u].neighbors[l_v][v].cap - layers[l_u].vertexes[u].neighbors[l_v][v].flow, layers[l_u].vertexes[u].exf);
-        cout << "DEST CAPACITY " << layers[l_v].vertexes[v].capacity << endl;
-        cout << "DEST FLOW " << layers[l_v].vertexes[v].flow << endl;
-        cout << "DEST exf " << layers[l_v].vertexes[v].exf << endl; 
-        cout << "VALUE Norm " << value << endl;
-        cout << test(l_u, u, l_v, v, value)*layers[l_u].vertexes[u].cTime << endl;
-        cout << "HMMM" << value << endl;
-        cout << layers[l_v].vertexes[v].capacity - layers[l_v].vertexes[v].flow -(test(l_u, u, l_v, v, value))*layers[l_u].vertexes[u].cTime << endl;
+        // cout << "DEST CAPACITY " << layers[l_v].vertexes[v].capacity << endl;
+        // cout << "DEST FLOW " << layers[l_v].vertexes[v].flow << endl;
+        // cout << "DEST exf " << layers[l_v].vertexes[v].exf << endl; 
+        // cout << "VALUE Norm " << value << endl;
+        // cout << test(l_u, u, l_v, v, value)*layers[l_u].vertexes[u].cTime << endl;
+        // cout << "HMMM" << value << endl;
+        // cout << layers[l_v].vertexes[v].capacity - layers[l_v].vertexes[v].flow -(test(l_u, u, l_v, v, value))*layers[l_u].vertexes[u].cTime << endl;
         if (layers[l_v].vertexes[v].type == INTERVAL && is_first_epoch) value = std::max(0,(std::min(value, layers[l_v].vertexes[v].capacity - layers[l_v].vertexes[v].flow -(test(l_u, u, l_v, v, value))*layers[l_u].vertexes[u].cTime) -layers[l_v].vertexes[v].exf));
         cout << "VALUE " << value << endl;
         if (value == 0){
             return;
         }
+        cout << "FRROM " << l_u << " " << u << " TO " << l_v << " " << v << endl;
         layers[l_u].vertexes[u].neighbors[l_v][v].flow += value;
         layers[l_v].vertexes[v].neighbors[l_u][u].flow = -layers[l_u].vertexes[u].neighbors[l_v][v].flow;
         layers[l_u].vertexes[u].exf -= value;
@@ -159,13 +160,15 @@ bool Web::discharge(int l_u, int u, bool is_first)
         for(Neighbors::iterator it_layer = layers[l_u].vertexes[u].neighbors.begin(); it_layer != layers[l_u].vertexes[u].neighbors.end(); it_layer++){
             map<int, NeighborInfo > layer_neighbors = it_layer->second;
             int l_v = it_layer->first; // Номер слоя соседа
+            // 0 - это дефолтный и не участвует в вычислениях
+            if (l_v == 0) continue;
             for (map<int, NeighborInfo >::iterator it = layer_neighbors.begin(); it != layer_neighbors.end(); it++){
                 int v = it->first; // Номер вершины соседа
                 NeighborInfo vertex_info = it->second;
                 
-                cout << "NEIGHBOR " << l_v << " " << v << endl; 
-                cout << layers[l_u].vertexes[u].h << " " << layers[l_v].vertexes[v].h << endl;
-                cout << layers[l_u].vertexes[u].neighbors[l_v][v].flow << " " << layers[l_u].vertexes[u].neighbors[l_v][v].cap << endl;
+                // cout << "NEIGHBOR " << l_v << " " << v << endl; 
+                // cout << layers[l_u].vertexes[u].h << " " << layers[l_v].vertexes[v].h << endl;
+                // cout << layers[l_u].vertexes[u].neighbors[l_v][v].flow << " " << layers[l_u].vertexes[u].neighbors[l_v][v].cap << endl;
 
                 //Если можно - протолкнуть
                 if (layers[l_u].vertexes[u].neighbors[l_v][v].cap > layers[l_u].vertexes[u].neighbors[l_v][v].flow && layers[l_u].vertexes[u].h == layers[l_v].vertexes[v].h + 1)
@@ -188,7 +191,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
                     //  decide_proc(layers[l].vertexes[u].part);
                     //    cout << "We execute part drawback" << endl;
                     lift(l_u, u);
-                    cout << "LIFT  " << l_u << " " << u << endl;
+                    // cout << "LIFT  " << l_u << " " << u << endl;
                     lifted = true;
                     continue;
                 }
@@ -209,7 +212,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
         }
         if (!is_first_epoch){
             lift(l_u, u);
-            cout << "LIFT  " << l_u << " " << u << endl;
+            // cout << "LIFT  " << l_u << " " << u << endl;
             is_first_epoch = true;
             lifted = true;
         }
@@ -397,7 +400,8 @@ int Web::test(int l_u, int u, int l_v, int v, int value)
 }
 
 void Web::checkpartadd(int l_v, int v, int part, int value, int ni, int pi)
-{
+{   
+    cout << "IN CHECH ADD " << endl;
     int numpart1 = layers[l_v].vertexes[v].setpart.size();
     layers[l_v].vertexes[v].partIn[part]+=value;
     if (layers[l_v].vertexes[v].partIn[part] != 0) layers[l_v].vertexes[v].setpart.insert(part);
@@ -414,13 +418,13 @@ void Web::checkpartadd(int l_v, int v, int part, int value, int ni, int pi)
        }
        else if (numpart2 == 2)
        {//появился второй раздел
-        if (ni != 0 && layers[l_v].vertexes[ni].firstPart != 0 && part == layers[l_v].vertexes[ni].firstPart) layers[l_v].vertexes[v].lastPart = part;
+        if (ni != -1 && layers[l_v].vertexes[ni].firstPart != 0 && part == layers[l_v].vertexes[ni].firstPart) layers[l_v].vertexes[v].lastPart = part;
         else layers[l_v].vertexes[v].firstPart = part;
        }
        else if (numpart2 > 2)
        {
-        if (ni != 0 && layers[l_v].vertexes[ni].firstPart != 0 && part == layers[l_v].vertexes[ni].firstPart) layers[l_v].vertexes[v].lastPart = part;
-        else if (pi != 0 && layers[l_v].vertexes[pi].firstPart != 0 && part == layers[l_v].vertexes[pi].lastPart) layers[l_v].vertexes[v].firstPart = part;
+        if (ni != -1 && layers[l_v].vertexes[ni].firstPart != 0 && part == layers[l_v].vertexes[ni].firstPart) layers[l_v].vertexes[v].lastPart = part;
+        else if (pi != -1 && layers[l_v].vertexes[pi].firstPart != 0 && part == layers[l_v].vertexes[pi].lastPart) layers[l_v].vertexes[v].firstPart = part;
        }
     }
 }
@@ -707,13 +711,6 @@ void Web::noflow()
 
 int Web::sheduledjobs()
 {   
-    // TODO
-    // int k = 0;
-    // for(int it = 2; it < numOfWork +2; it++)
-    // {
-    //     if (layers[l].vertexes[0].cap[it] != 0) k++;
-    // }
-    // return k;
     return num_of_works;
 }
 
