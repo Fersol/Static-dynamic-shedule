@@ -142,6 +142,7 @@ public:
     int source_flow; // Размер потока из источника
     int dest_flow; // Размер потока в сток
     int layer_int; // Первый слой с интервалами
+    int free_layer; // номер свободного слоя
     // int src;   			 //номер вершины источника
     // int dest;			 //номер вершины стока
     int hard;            //сложность расписания
@@ -149,7 +150,7 @@ public:
     map<int,set<int> > P;    //переполненные вершины по разделам, 0 - вершины интервалы
     map<int, Layer> layers;   //cлои c вершинами
     // vector<Vertex> verVec;   //cами вершины
-    map< int, int> QP; // Соответствие раздела процессору (слою).
+    map< int, int> QP; // Соответствие раздела слою (который соответствует процессору).
     vector<Processor*> processors;
     int mainLoop; // НОК работ - интервал планирования
     vector<int> partitionOrder;
@@ -291,6 +292,12 @@ public:
      * Решаем на какой процессор разместить раздел
      */
    void decide_proc(int part, int prohibit_proc=-1);
+
+    /**
+     * Создает слой с вершинами-интервала процессра определенного вида
+     */
+   void add_proc_layer(int iproc);
+
 };
 
 

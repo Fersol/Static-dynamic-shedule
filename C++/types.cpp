@@ -107,10 +107,6 @@ void Web::push(int l_u, int u, int l_v, int v, bool is_first_epoch)
         //добавить раздел в вершину
         if ((layers[l_u].vertexes[u].type == JOB) && (layers[l_v].vertexes[v].type == INTERVAL))
         {
-            // первый раз отправили и определили раздел
-            // if (nproc > 1 && QP[layers[l].vertexes[u].part] == -1){
-            //     part_to_proc(layers[l].vertexes[u].part, layers[l].vertexes[v].proc);
-            // }
             ni = findnext(l_v, v);
             pi = findprev(l_v, v);
             checkpartadd(l_v, v, layers[l_u].vertexes[u].part, value, ni, pi);
@@ -228,11 +224,13 @@ void Web::maxflow()
 
      //layers[l].vertexes[0].h = n; Это лишнее - общая переменная будет в сети
     
-    // Опредляем порядок разделов
-    // for(int i =0; i < q;i++){
-    //     decide_proc(partitionOrder[i],-1);
-    //     cout <<"Partition "<< partitionOrder[i] <<":"<<QP[partitionOrder[i]];
-    // }
+    // Опредляем порядок разделов изначальные предпочтения
+    for(int i = 1; i <= q;i++){
+        //decide_proc(partitionOrder[i],-1);
+        //cout <<"Partition "<< partitionOrder[i] <<":"<<QP[partitionOrder[i]];
+        // Наивный вариант нужно что умнее
+        QP[i] = q + 1;
+    }
      source_flow = 0;
      bool isfirsttime = true;
      bool isendwork = false;
@@ -378,7 +376,6 @@ void Web::deletework(int l_u, int u)
 double Web::Effectivness()
 {   
     return (double)source_flow /hard;
-    return 1;
 }
 
 int Web::test(int l_u, int u, int l_v, int v, int value)
@@ -659,56 +656,6 @@ int Web::findprev(int l_v, int v)
     return pi;
 }
 
-void Web::back()
-{
-    //for(int v = 1; v < numOfWork + 2; v++)
-    //{
-    //    layers[l].vertexes[v].h = 0;
-    //    for(map<int,int>::iterator it = layers[l].vertexes[v].cap.begin(); it != layers[l].vertexes[v].cap.end(); it++)
-    //    {
-    //        int u = it->first;
-    //        if (layers[l].vertexes[u].type == INTERVAL && layers[l].vertexes[u].proc == QP[layers[l].vertexes[v].part])
-    //        {
-    //            layers[l].vertexes[v].cap[u] = layers[l].vertexes[u].duration;
-    //        }
-    //    }
-    //}
-
-    // for(int v = 1; v < n; v++)
-    // {
-    //     layers[l_v].vertexes[v].h = 0;
-    // }
-
-    // TODO
-}
-
-void Web::noflow()
-{   
-    // TODO
-    // for(int v = 0; v < n; v++)
-    // {
-    //     layers[l_v].vertexes[v].h = 0;
-    //     for(map<int,int>::iterator it = layers[l].vertexes[v].cap.begin(); it != layers[l].vertexes[v].cap.end(); it++)
-    //     {
-    //             layers[l].vertexes[v].flow[it->first] = 0;
-    //     }
-    //     if (layers[l].vertexes[v].type == INTERVAL){
-    //         layers[l].vertexes[v].firstPart = 0;
-    //         layers[l].vertexes[v].lastPart = 0;
-    //         set<int> set;
-    //         layers[l].vertexes[v].setpart = set;
-    //         for (int i = 0; i < q+1; i++){
-    //             layers[l].vertexes[v].partIn[i] = 0;
-    //         }
-    //         layers[l].vertexes[v].chWdw = 0;
-    //         layers[l].vertexes[v].isRWin = false;
-    //         layers[l].vertexes[v].isLWin = false;
-    //     }
-    // }
-    // layers[l].vertexes[0].exf = 0;
-    // layers[l].vertexes[1].exf = 0;
-}
-
 int Web::sheduledjobs()
 {   
     return num_of_works;
@@ -814,6 +761,45 @@ void Web::decide_proc(int part, int prohibit_proc){
     //         }
     //     }
     // }
+}
+
+void Web::add_proc_layer(int iproc){
+    // Добавляем по дефолтному слою
+    int l_j = free_layer;
+    free_layer++;
+    auto options = processors[iproc]->functionality;
+    int proc_performance = processors[iproc]->performance;
+    cout << "PERFORMANCE " << proc_performance << endl;
+    // Копирование слоя
+    layers[l_j] = layers[0];
+    layers[l_j].ptype = iproc;
+    cout << layers[l_j].vertexes.size() << endl;
+    cout << layers[l_j].vertexes[0].neighbors[1][0].cap << endl;
+    cout << layers[l_j].vertexes[0].neighbors[1][0].cap << endl;
+    // Изменяем параметры
+    for (int l_i=1; l_i < layer_int ; l_i++){
+        bool isFunctionality = true;
+        set<string> result;
+        std::set_intersection(layers[l_i].vertexes[0].options.begin(), layers[l_i].vertexes[0].options.end(),
+            options.begin(), options.end(),
+            std::inserter(result, result.begin()));
+        if (result != layers[l_i].vertexes[0].options){
+            isFunctionality = false;
+        }
+        if (isFunctionality) {
+            for(int i = 0; i < layers[l_i].vertexes.size(); i++){
+                for (map<int, NeighborInfo >::iterator it = layers[l_i].vertexes[i].neighbors[0].begin(); it !=  layers[l_i].vertexes[i].neighbors[0].end(); it++){
+                    int j = it->first;;
+                    cout << "ADD " << l_i << " " << i << " " << l_j << " " << j << endl;
+                    layers[l_i].vertexes[i].neighbors[l_j][j].cap = layers[l_i].vertexes[i].neighbors[0][j].cap * proc_performance;
+                    layers[l_j].vertexes[j].capacity = layers[l_i].vertexes[i].neighbors[l_j][j].cap;
+                    cout << layers[l_i].vertexes[i].neighbors[l_j][j].cap << endl;
+                    // cout << web.layers[l_j].vertexes[j].capacity << endl;
+                    // cout << web.layers[0].vertexes[j].capacity << endl;
+                }
+            }
+        }
+    }
 }
 
 long long NOK(long long a, long long b)

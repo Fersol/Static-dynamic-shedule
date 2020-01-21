@@ -323,43 +323,11 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
             }
         }
     }
-
+    // важное установление начального слоя для процессоров
+    web.free_layer = web.layer_int;
     // Добавляем процессоры по дефолтному слою
     for (int iproc=0; iproc < web.nproc; iproc++){
-        int l_j = web.layer_int + iproc;
-        auto options = processors[iproc]->functionality;
-        int proc_performance = processors[iproc]->performance;
-        cout << "PERFORMANCE " << proc_performance << endl;
-        // Копирование слоя
-        web.layers[l_j] = web.layers[0];
-        web.layers[l_j].ptype = iproc;
-        cout << web.layers[l_j].vertexes.size() << endl;
-        cout << web.layers[l_j].vertexes[0].neighbors[1][0].cap << endl;
-        cout << web.layers[l_j].vertexes[0].neighbors[1][0].cap << endl;
-        // Изменяем параметры
-        for (int l_i=1; l_i < web.layer_int ; l_i++){
-            bool isFunctionality = true;
-            set<string> result;
-            std::set_intersection(web.layers[l_i].vertexes[0].options.begin(), web.layers[l_i].vertexes[0].options.end(),
-                options.begin(), options.end(),
-                std::inserter(result, result.begin()));
-            if (result != web.layers[l_i].vertexes[0].options){
-                isFunctionality = false;
-            }
-            if (isFunctionality) {
-                for(int i = 0; i < web.layers[l_i].vertexes.size(); i++){
-                    for (map<int, NeighborInfo >::iterator it = web.layers[l_i].vertexes[i].neighbors[0].begin(); it != web.layers[l_i].vertexes[i].neighbors[0].end(); it++){
-                        int j = it->first;;
-                        cout << "ADD " << l_i << " " << i << " " << l_j << " " << j << endl;
-                        web.layers[l_i].vertexes[i].neighbors[l_j][j].cap = web.layers[l_i].vertexes[i].neighbors[0][j].cap * proc_performance;
-                        web.layers[l_j].vertexes[j].capacity = web.layers[l_i].vertexes[i].neighbors[l_j][j].cap;
-                        cout << web.layers[l_i].vertexes[i].neighbors[l_j][j].cap << endl;
-                        // cout << web.layers[l_j].vertexes[j].capacity << endl;
-                        // cout << web.layers[0].vertexes[j].capacity << endl;
-                    }
-                }
-            }
-        }
+        web.add_proc_layer(iproc);
     }
 
 
