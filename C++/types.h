@@ -127,6 +127,8 @@ class Layer
   vector<Vertex> vertexes;
   set<int> extended; // переполненные вершины
   int ptype = -1; // тип процессора слоя, -1 - слои с разделами.
+  int complexity;  // сложность для раздела
+  int load;        // доступная нагрузка для процессора
 };
 
 class Web
@@ -156,7 +158,6 @@ public:
     vector<int> partitionOrder;
 
     map<int, int>  processorLoad;
-    map<int, int>  partitionComplexity;
     map<int, set<string> > partitionFunctionality;
     /**
      * Конструктор по умолчанию
@@ -291,7 +292,7 @@ public:
     /**
      * Решаем на какой процессор разместить раздел
      */
-   void decide_proc(int part, int prohibit_proc=-1);
+   void decide_proc(int part);
 
     /**
      * Создает слой с вершинами-интервала процессра определенного вида

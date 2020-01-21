@@ -237,29 +237,27 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
     web.num_of_works = jobs.size();
    for (list<JobHeterogenes*>::iterator it = jobs.begin(); it != jobs.end(); it++)
    {        
-           // Ищем интервал планирования
-           if (web.mainLoop < (*it)->finish){
-               web.mainLoop = (*it)->finish;
-           }
-           // Добавляем вершину
-           Vertex temp;
-           temp.duration = (*it)->complexity;
-           temp.part = (*it)->partition;
-           if (web.partitionComplexity.count(temp.part)){
-               web.partitionComplexity[temp.part] += temp.duration;
-           } else {
-               web.partitionComplexity[temp.part] = temp.duration;
-           }
+            // Ищем интервал планирования
+            if (web.mainLoop < (*it)->finish){
+                web.mainLoop = (*it)->finish;
+            }
+            // Добавляем вершину
+            Vertex temp;
+            temp.duration = (*it)->complexity;
+            temp.part = (*it)->partition;
+           
+            web.layers[temp.part].complexity += temp.duration;
 
-           temp.stTime = (*it)->start;
-           temp.finTime = (*it)->finish;
-           temp.cTime = cTime;
-           temp.h = 1;
-           temp.type = JOB;
-           temp.numTask = (*it)->numTask;
-           temp.options = (*it)->functionality;
+
+            temp.stTime = (*it)->start;
+            temp.finTime = (*it)->finish;
+            temp.cTime = cTime;
+            temp.h = 1;
+            temp.type = JOB;
+            temp.numTask = (*it)->numTask;
+            temp.options = (*it)->functionality;
           
-           if (web.partitionFunctionality.count(temp.part)){
+            if (web.partitionFunctionality.count(temp.part)){
                set<string> result;
                std::set_union(web.partitionFunctionality[temp.part].begin(),web.partitionFunctionality[temp.part].end(),
                temp.options.begin(), temp.options.end(),
@@ -356,17 +354,20 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
         }
     }
  
-    // добавить структуру для раздела-процессора
+    // добавить структуру для раздела-процессора неопределенную
     for(int i = 1; i <= web.q; i++){
-        web.QP[i] = web.q+1;
+        web.QP[i] = -1;
     }
     //время на переключение
     web.cw = cTime;
     // Создать порядок разделов по сортировке
     vector<pair<int,int> >vec;
-    for(auto x=web.partitionComplexity.begin(); x!=web.partitionComplexity.end(); x++) vec.push_back(*x);
-        sort(vec.begin(), vec.end(), [](pair<int,int> elem1, pair<int,int> elem2) {return elem1.second > elem2.second;});
-    for(auto x:vec)web.partitionOrder.push_back(x.first);
+    for(int i=1; i <= web.q; i++){
+        pair<int, int> tmp(i, web.layers[i].complexity);
+        vec.push_back(tmp);
+    }
+    sort(vec.begin(), vec.end(), [](pair<int,int> elem1, pair<int,int> elem2) {return elem1.second > elem2.second;});
+    for(auto x:vec) web.partitionOrder.push_back(x.first);
 
     return web;
 }

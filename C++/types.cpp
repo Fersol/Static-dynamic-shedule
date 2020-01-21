@@ -223,13 +223,17 @@ void Web::maxflow()
      //Инициализация
 
      //layers[l].vertexes[0].h = n; Это лишнее - общая переменная будет в сети
-    
+    // Определяем сложности разделов и процессоров
+
+
+
     // Опредляем порядок разделов изначальные предпочтения
     for(int i = 1; i <= q;i++){
         //decide_proc(partitionOrder[i],-1);
         //cout <<"Partition "<< partitionOrder[i] <<":"<<QP[partitionOrder[i]];
         // Наивный вариант нужно что умнее
-        QP[i] = q + 1;
+        decide_proc(i);
+        //QP[i] = ;
     }
      source_flow = 0;
      bool isfirsttime = true;
@@ -662,21 +666,6 @@ int Web::sheduledjobs()
 }
 
 
-
-
-
-// void Web::part_to_proc(int q, int proc){
-//     // Раздел прикпрепляется к процессору, на других он выполнятся не может - пропускные способности в остальные равны 0
-//     QP[q] = proc;
-//     for(set<int>::iterator pit = (vPart[q]).begin(); pit != (vPart[q]).end(); pit++){
-//         for (map<int,int>::iterator it = layers[l].vertexes[*pit].cap.begin(); it != layers[l].vertexes[*pit].cap.end(); it++){
-//             if (layers[l].vertexes[it->first].proc != proc){
-//                 layers[l].vertexes[*pit].cap[it->first] = 0;
-//             }
-//         }
-//     }
-// }
-
 void Web::part_from_proc(int q, int proc){
     // Rewrite
     // //QP[q] = -1;
@@ -726,41 +715,59 @@ void Web::part_from_proc(int q, int proc){
     // cout << "New Proc" << q <<endl;
 }
 
-void Web::decide_proc(int part, int prohibit_proc){
+void Web::decide_proc(int part){
+    // Предыдущее место размещения
+    int prohibit_layer = QP[part];
     // Rewrite
-    // int idxProc = 0;
-    // int freeSpace = 0;
-    // int complexity = partitionComplexity[part];
+    int idx_proc_layer = 0;
+    int freeSpace = 0;
+    int complexity = layers[part].complexity;
 
-    // for(int i=0; i < nproc;i++){
-    //     bool isFunctionality = true;
-    //     set<string> result;
-    //     std::set_intersection(processors[i]->functionality.begin(),processors[i]->functionality.end(),
-    //      partitionFunctionality[part].begin(), partitionFunctionality[part].end(),
-    //     std::inserter(result, result.begin()));
-    //     if (result != partitionFunctionality[part]){
-    //         isFunctionality = false;
-    //         //cout << "false part" << part << ": proc " << i << endl;
-    //     }
-    //     if (processorLoad[i] > freeSpace && i != prohibit_proc && isFunctionality) {
-    //         idxProc = i;
-    //         freeSpace = processorLoad[i]; 
-    //     }
-    //     //cout << "proc:" << idxProc << endl;
-    // }
+    // Идем по слоям-процессорам и выбираем подходящий слой
+    for(int i=layer_int; i <free_layer; i++){
+        bool isFunctionality = true;
+        int iproc = layers[i].ptype;
+        set<string> result;
+        std::set_intersection(processors[iproc]->functionality.begin(),processors[iproc]->functionality.end(),
+         partitionFunctionality[part].begin(), partitionFunctionality[part].end(),
+        std::inserter(result, result.begin()));
+        if (result != partitionFunctionality[part]){
+            isFunctionality = false;
+            cout << "false part" << part << ": proc " << iproc << endl;
+        }
+        cout << "Processor load:" << layers[i].load;
+        if (layers[i].load > freeSpace && i != prohibit_layer && isFunctionality) {
+            idx_proc_layer = i;
+            freeSpace = layers[i].load; 
+        }
+        //cout << "proc:" << idx_proc_layer << endl;
+    }
 
-    // cout << "finel proc:" << idxProc;
-    // processorLoad[idxProc] -= complexity;
-    // QP[part] = idxProc;
+    cout << "final proc:" << idx_proc_layer;
+    cout << "free layer:" << free_layer;
+    layers[idx_proc_layer].load -= complexity;
+    QP[part] = idx_proc_layer;
 
-    // // запретить другие пути
-    // for(set<int>::iterator pit = (vPart[part]).begin(); pit != (vPart[part]).end(); pit++){
-    //     for (map<int,int>::iterator it = layers[l].vertexes[*pit].cap.begin(); it != layers[l].vertexes[*pit].cap.end(); it++){
-    //         if (layers[l].vertexes[it->first].proc != idxProc){
-    //             layers[l].vertexes[*pit].cap[it->first] = 0;
-    //         }
-    //     }
-    // }
+    // запретить другие пути
+    // Идем по вершинам слоя с работами
+    for(int i=0; i < layers[part].vertexes.size(); i++){
+
+        // проход по соседям, минимальная вершина среди тех, куда возможно проталкивание
+        for(Neighbors::iterator it_layer = layers[part].vertexes[i].neighbors.begin(); it_layer != layers[part].vertexes[i].neighbors.end(); it_layer++){
+            map<int, NeighborInfo > layer_neighbors = it_layer->second;
+            // Номер слоя соседа
+            int l_v = it_layer->first;
+            // Если не наш процессор, то делаем до него пропускные способности в 0
+            if (l_v != idx_proc_layer) {
+                for (map<int, NeighborInfo >::iterator it = layer_neighbors.begin(); it != layer_neighbors.end(); it++){
+                    // Номер вершины соседа
+                    int v = it->first;
+                    layers[part].vertexes[i].neighbors[l_v][v].cap = 0;
+                }
+            }
+        }
+
+    }
 }
 
 void Web::add_proc_layer(int iproc){
@@ -772,6 +779,7 @@ void Web::add_proc_layer(int iproc){
     cout << "PERFORMANCE " << proc_performance << endl;
     // Копирование слоя
     layers[l_j] = layers[0];
+    layers[l_j].load = proc_performance * mainLoop;
     layers[l_j].ptype = iproc;
     cout << layers[l_j].vertexes.size() << endl;
     cout << layers[l_j].vertexes[0].neighbors[1][0].cap << endl;
