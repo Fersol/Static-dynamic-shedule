@@ -30,13 +30,13 @@ int main(int argc, char** argv){
     cout << "The network has been created\n";
     web.maxflow();
     cout << "The maxflow of the network has been found\n";
+    web.print();
     list< list<Window*> > windows = CreateWindows(&web);
     cout << "The windows have been found\n";
     unsigned int endIime = clock();
 
     WriteWindowsToFile(windows, filenamewindows, to_string(float(endIime-startIime)/1000), to_string(web.sheduledjobs()), to_string(web.Effectivness()));
-    cout << "Solution has been writen to the file\n";
-
+    cout << "Solution has been writen to the file\n"; 
     cout << "Exit\n";
     return 0;
 }
