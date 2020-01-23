@@ -299,6 +299,12 @@ public:
      */
    void add_proc_layer(int iproc);
 
+    /**
+     * Печатает состояние сети
+     */
+   void print();
+
+
 };
 
 

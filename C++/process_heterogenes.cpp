@@ -243,6 +243,7 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
             }
             // Добавляем вершину
             Vertex temp;
+            temp.capacity = (*it)->complexity;
             temp.duration = (*it)->complexity;
             temp.part = (*it)->partition;
            
@@ -254,6 +255,7 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
             temp.cTime = cTime;
             temp.h = 1;
             temp.type = JOB;
+            temp.flow = 0;
             temp.numTask = (*it)->numTask;
             temp.options = (*it)->functionality;
           
