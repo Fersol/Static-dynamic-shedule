@@ -679,53 +679,46 @@ int Web::sheduledjobs()
 }
 
 
-void Web::part_from_proc(int q, int proc){
-    // Rewrite
-    // //QP[q] = -1;
-    // processorLoad[proc] += partitionComplexity[q];
-    // // убрать поток
-    // // cout << "we begin" << endl;
-    // // открыть новые пути
-    // for(set<int>::iterator pit = (vPart[q]).begin(); pit != (vPart[q]).end(); pit++){
-    //     int v = *pit;
-    //     // cout << "we begin:" << v <<endl;
-    //     for (map<int,int>::iterator it = layers[l].vertexes[v].cap.begin(); it != layers[l].vertexes[v].cap.end(); it++){
-    //         // cout << "we continue:" << it->first <<endl;
-    //         int u = it->first;
-    //         if (layers[l].vertexes[u].proc == proc){
+void Web::part_from_proc(int l_q, int l_p){
+    cout << "PART FROM PROC " << l_p << " FOR PART " << l_q << endl;
+    layers[l_p].load += layers[l_q].complexity;
+    // убрать поток
+    for(int u=0; u < layers[l_q].vertexes.size(); u++){
+        for (map<int, NeighborInfo >::iterator it = layers[l_q].vertexes[u].neighbors[l_p].begin(); it != layers[l_q].vertexes[u].neighbors[l_p].end(); it++){
+            // Номер вершины соседа
+            int v = it->first;
 
-    //             int value = layers[l].vertexes[v].flow[u];
 
-    //             layers[l].vertexes[u].exf -= value;
-    //             layers[l].vertexes[v].exf += value;
-    //             layers[l].vertexes[v].h = 1;
-    //             layers[l].vertexes[u].h = 1;
-    //             if (v != 1 && layers[l].vertexes[v].exf > 0) P[layers[l].vertexes[v].part].insert(v);
+            int value = layers[l_q].vertexes[u].neighbors[l_p][v].flow;
 
-    //             // layers[l].vertexes[1].flow[v] += value;
-    //             // layers[l].vertexes[v].flow[1] -= value;
-    //             layers[l].vertexes[v].flow[u] -= value;
-    //             layers[l].vertexes[u].flow[v] += value;
+            layers[l_q].vertexes[u].neighbors[l_p][v].flow -= value;
+            layers[l_p].vertexes[v].neighbors[l_q][u].flow += value;
 
-    //             int ni = findnext(u);
-    //             int pi = findprev(u);
-    //             // cout << "we there 1:" << it->first <<endl;
-    //             checkpartdec(u, layers[l].vertexes[v].part, value);
-    //             // cout << "we there 2:" << it->first <<endl;
-    //             correctwindows(u, ni, pi);
-    //             // cout << "we there 3:" << it->first <<endl;
-    //             layers[l].vertexes[v].cap[u] = 0;
-    //         }
-    //         else if (layers[l].vertexes[u].type == INTERVAL)
-    //         {
-    //             layers[l].vertexes[v].cap[u] = layers[l].vertexes[u].duration;
-    //         }
-    //     }
-    // }
+            // Нужно от самого конца начинать убирать
+            // Считаем, что что-то может утечь exf, а потом уже только flow
+            // Дальше число, на которое flow должно измениться
+            int end_value = max(0, value - layers[l_p].vertexes[v].exf);
+            int new_value = value - end_value;
+            layers[l_p].vertexes[v].flow -= end_value;
+            layers[l_p].vertexes[v].exf -= new_value;
+                
 
-    // // Назначить новый процессор
-    // decide_proc(q,proc);
-    // cout << "New Proc" << q <<endl;
+            int ni = findnext(l_p, v);
+            int pi = findprev(l_p, v);
+            checkpartdec(l_p, v, layers[l_q].vertexes[u].part, value);
+            correctwindows(l_p, v, ni, pi);
+
+            layers[l_q].vertexes[u].exf += value;
+            layers[l_p].vertexes[v].h = 1;
+            layers[l_q].vertexes[u].h = 1;
+
+            if (layers[l_q].vertexes[v].exf > 0) layers[l_q].extended.insert(v);
+        }
+    }
+
+    // Назначить новый процессор
+    decide_proc(l_q);
+    cout << "New Proc for " << l_q <<endl;
 }
 
 void Web::decide_proc(int part){
