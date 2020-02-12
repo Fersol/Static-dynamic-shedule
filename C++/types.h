@@ -65,6 +65,7 @@ struct JobHeterogenes
 struct Processor
 {
     int performance; //performance/complexity = time
+    int cost; 
     set<string> functionality; // обеспечиваемая функциональность
 };
 
@@ -73,6 +74,7 @@ struct Window
     float start;
     float finish;
     long long partition;
+    long long ptype;
     map<int, float> works;
 };
 
@@ -129,6 +131,8 @@ class Layer
   int ptype = -1; // тип процессора слоя, -1 - слои с разделами.
   int complexity;  // сложность для раздела
   int load;        // доступная нагрузка для процессора
+  set<string> functionality; // возможности процессора и разделов
+
 };
 
 class Web
@@ -155,7 +159,9 @@ public:
     map< int, int> QP; // Соответствие раздела слою (который соответствует процессору).
     vector<Processor*> processors;
     int mainLoop; // НОК работ - интервал планирования
-    vector<int> partitionOrder;
+    vector<pair<int,int> > partitionOrder;
+    vector<pair<int,int> > processorOrder;
+    map< int, vector<int> > tab;   // Таблица для поиска оптимальных процессоров
 
     map<int, int>  processorLoad;
     map<int, set<string> > partitionFunctionality;
@@ -205,6 +211,16 @@ public:
      * Обычный алгоритм поиска максимального потока медотодом поднять и в начало
     */
     void maxflow();
+
+    /**
+     * Обычный алгоритм поиска максимального потока методом поднять и в начало и построением конфигурации
+    */
+    void conf_maxflow();
+
+    /**
+     * Найти тип наиболее подходящего процессора для раздела
+    */
+    void find_best_proc(int part);
 
     /**
      * Удаляет работу из сети
@@ -303,6 +319,31 @@ public:
      * Печатает состояние сети
      */
    void print();
+
+  /**
+     * Сортирует разделы по порядку убывания сложности раздела
+     */
+   void sort_partition();
+
+   /**
+     * Сортирует процессор по порядку увеличения стоимости процессора
+     */
+    void sort_processors();
+
+    /**
+      * Сортирует процессор по порядку увеличения стоимости процессора
+      */
+    void create_cost_tab();
+
+    /**
+      * Сортирует процессор по порядку увеличения стоимости процессора
+      */
+    void print_tab();
+
+    /**
+      * Сортирует процессор по порядку увеличения стоимости процессора
+      */
+    bool find_alloc(string typeoftask);
 
 
 };
