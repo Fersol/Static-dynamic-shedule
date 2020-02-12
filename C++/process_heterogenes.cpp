@@ -31,6 +31,8 @@ vector<Processor*> ReadSystemFromFile(string filename)
         vector<string> funcVec = split(*it,";");
         set<string> funcSet(funcVec.begin(), funcVec.end());
         processor->functionality = funcSet;
+        it++;
+        processor->cost = stoi(*it);
         processors.push_back(processor);
     }
     file.close();
@@ -54,7 +56,7 @@ void WriteWindowsToFile(list< list<Window*> > windows, string filename, string t
     fileres.close();
 
     ofstream file(filename+".sol");
-    file << "Processor, Partition, Window, Works\n";
+    file << "Processor, Processor Type, Partition, Window, Works\n";
 
     int proc = 0;
     for(list<list<Window*> >::iterator itproc = windows.begin(); itproc != windows.end(); itproc ++){
@@ -64,6 +66,9 @@ void WriteWindowsToFile(list< list<Window*> > windows, string filename, string t
         {   
             file << proc;
             file << ", ";
+
+            file<<(*it)->ptype;
+            file<<", ";
 
             file<<(*it)->partition;
             file<<", ";
@@ -220,7 +225,7 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
 {
    //добавить вершины работы и источник по задачам
    Web web;
-   
+
    cout << "Start creating web\n";
    web.processors = processors;
    web.mainLoop = 0;
@@ -258,6 +263,9 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
             temp.flow = 0;
             temp.numTask = (*it)->numTask;
             temp.options = (*it)->functionality;
+            
+            web.layers[temp.part].functionality.insert(temp.options.begin(), temp.options.end());
+
           
             if (web.partitionFunctionality.count(temp.part)){
                set<string> result;
@@ -325,37 +333,8 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
     }
     // важное установление начального слоя для процессоров
     web.free_layer = web.layer_int;
-    // Добавляем процессоры по дефолтному слою
-    for (int iproc=0; iproc < web.nproc; iproc++){
-        web.add_proc_layer(iproc);
-    }
-
-
-
-    //дополнительная информация
-    web.hints = web.nproc*web.nproc - 1;
-    web.hints_layer = 5;
-    int n = 0;
-    for(map<int, Layer>::iterator it = web.layers.begin(); it != web.layers.end(); it++){
-        n = n + it->second.vertexes.size();
-    }
-    web.n = n;
+   
     web.q = maxpart;
-
-    // добавляем вместительность процессоров
-    for (int i=0;i < web.nproc; i++){
-        web.processorLoad[i] = web.mainLoop * web.processors[i]->performance;
-    }
-
-    for (int i=web.layer_int; i < web.layer_int + web.nproc; i++){
-        for (int j=0; j < web.layers[i].vertexes.size(); j++){
-            web.layers[i].vertexes[j].partIn.resize(web.q + 1);
-            for(int k = 0; k < web.q + 1; k++){
-                web.layers[i].vertexes[j].partIn[k] = 0;
-            }
-        }
-    }
- 
     // добавить структуру для раздела-процессора неопределенную
     for(int i = 1; i <= web.q; i++){
         web.QP[i] = -1;
@@ -363,13 +342,13 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
     //время на переключение
     web.cw = cTime;
     // Создать порядок разделов по сортировке
-    vector<pair<int,int> >vec;
-    for(int i=1; i <= web.q; i++){
-        pair<int, int> tmp(i, web.layers[i].complexity);
-        vec.push_back(tmp);
-    }
-    sort(vec.begin(), vec.end(), [](pair<int,int> elem1, pair<int,int> elem2) {return elem1.second > elem2.second;});
-    for(auto x:vec) web.partitionOrder.push_back(x.first);
+    // vector<pair<int,int> >vec;
+    // for(int i=1; i <= web.q; i++){
+    //     pair<int, int> tmp(i, web.layers[i].complexity);
+    //     vec.push_back(tmp);
+    // }
+    // sort(vec.begin(), vec.end(), [](pair<int,int> elem1, pair<int,int> elem2) {return elem1.second > elem2.second;});
+    // for(auto x:vec) web.partitionOrder.push_back(x.first);
 
     return web;
 }
@@ -379,7 +358,7 @@ list< list<Window*> > CreateWindows(Web* web)
     cout << "Creation of WINDOWS" << endl; 
     int nproc = web->nproc;
     // Цикл по номерам слоев
-    for(int l_p = web->q+1; l_p < web->layer_int + web->nproc; l_p++){
+    for(int l_p = web->q+1; l_p < web->free_layer; l_p++){
         list<Window*> windows;
         Window* win = new Window;
         float curtime = 0;
@@ -399,6 +378,7 @@ list< list<Window*> > CreateWindows(Web* web)
             if (it == 0){
                 win->start = 0;
                 win->partition = web->layers[l_p].vertexes[it].firstPart;
+                win->ptype = web->layers[l_p].ptype;
             }
             cout << " start " << endl;
             // для пустых интервалов
@@ -414,6 +394,7 @@ list< list<Window*> > CreateWindows(Web* web)
                 curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
                 win->start = curtime;
                 win->partition = web->layers[l_p].vertexes[it].firstPart;
+                win->ptype = web->layers[l_p].ptype;
             }
             cout << " start " << endl;
             // анализ средней части
@@ -454,6 +435,7 @@ list< list<Window*> > CreateWindows(Web* web)
                     curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
                     win->start = curtime;
                     win->partition = *its;
+                    win->ptype = web->layers[l_p].ptype;
                     curtime+=float(web->layers[l_p].vertexes[it].partIn[*its])/web->processors[web->layers[l_p].ptype]->performance;
                     win->finish = curtime;
 
@@ -484,6 +466,7 @@ list< list<Window*> > CreateWindows(Web* web)
                 curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
                 win->start = curtime;
                 win->partition = web->layers[l_p].vertexes[it].lastPart;
+                win->ptype = web->layers[l_p].ptype;
             }
 
 
@@ -528,6 +511,7 @@ list< list<Window*> > CreateWindows(Web* web)
                 curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
                 win->start = curtime;
                 win->partition = web->layers[l_p].vertexes[it+1].firstPart;
+                win->ptype = web->layers[l_p].ptype;
             }
 
 

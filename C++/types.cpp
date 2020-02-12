@@ -227,14 +227,7 @@ void Web::maxflow()
 
 
 
-    // Опредляем порядок разделов изначальные предпочтения
-    for(int i = 1; i <= q;i++){
-        //decide_proc(partitionOrder[i],-1);
-        //cout <<"Partition "<< partitionOrder[i] <<":"<<QP[partitionOrder[i]];
-        // Наивный вариант нужно что умнее
-        decide_proc(i);
-        //QP[i] = ;
-    }
+    
      source_flow = 0;
      bool isfirsttime = true;
      bool isendwork = false;
@@ -414,12 +407,16 @@ int Web::test(int l_u, int u, int l_v, int v, int value)
 
 void Web::checkpartadd(int l_v, int v, int part, int value, int ni, int pi)
 {   
-    cout << "IN CHECH ADD " << endl;
+    cout << "IN CHECK ADD " << endl;
+    cout << "TO " << l_v << " " << v << endl; 
+    cout << "PART " << part << endl;
     int numpart1 = layers[l_v].vertexes[v].setpart.size();
+    cout << "NExt" << part << endl;
     layers[l_v].vertexes[v].partIn[part]+=value;
+    cout << "NExt" << part << endl;
     if (layers[l_v].vertexes[v].partIn[part] != 0) layers[l_v].vertexes[v].setpart.insert(part);
     int numpart2 = layers[l_v].vertexes[v].setpart.size();
-
+    
     if (numpart1 != numpart2)
     {//добавился раздел
 
@@ -440,6 +437,7 @@ void Web::checkpartadd(int l_v, int v, int part, int value, int ni, int pi)
         else if (pi != -1 && layers[l_v].vertexes[pi].firstPart != 0 && part == layers[l_v].vertexes[pi].lastPart) layers[l_v].vertexes[v].firstPart = part;
        }
     }
+    cout << "END IN CHECK ADD " << endl;
 }
 
 void Web::checkpartdec(int l_v, int v, int part, int value)
@@ -782,14 +780,17 @@ void Web::add_proc_layer(int iproc){
     free_layer++;
     auto options = processors[iproc]->functionality;
     int proc_performance = processors[iproc]->performance;
+    cout << "ADD PROCESSOR of type " << iproc << endl;
     cout << "PERFORMANCE " << proc_performance << endl;
+    cout << "LAYER " << l_j << endl;
     // Копирование слоя
     layers[l_j] = layers[0];
     layers[l_j].load = proc_performance * mainLoop;
     layers[l_j].ptype = iproc;
-    cout << layers[l_j].vertexes.size() << endl;
-    cout << layers[l_j].vertexes[0].neighbors[1][0].cap << endl;
-    cout << layers[l_j].vertexes[0].neighbors[1][0].cap << endl;
+    layers[l_j].functionality = options;
+    cout << "SIZE " << layers[l_j].vertexes.size() << endl;
+    // cout << layers[l_j].vertexes[0].neighbors[1][0].cap << endl;
+    // cout << layers[l_j].vertexes[0].neighbors[1][0].cap << endl;
     // Изменяем параметры
     for (int l_i=1; l_i < layer_int ; l_i++){
         bool isFunctionality = true;
@@ -814,7 +815,16 @@ void Web::add_proc_layer(int iproc){
             }
         }
     }
+    // Заполняем инфу о разделах в проце
+    for (int j=0; j < layers[l_j].vertexes.size(); j++){
+        layers[l_j].vertexes[j].partIn.resize(q + 1);
+        for(int k = 0; k < q + 1; k++){
+            layers[l_j].vertexes[j].partIn[k] = 0;
+        }
+    }
+    cout << "END OF ADDING PROCESSOR\n";
 }
+
 void Web::print(){
 // Выведем последний слой сети
     cout << "WEB IMAGE" << endl;
@@ -833,6 +843,118 @@ void Web::print(){
                 }
             }
         }
+    }
+}
+
+void Web::sort_partition(){
+    // Создать порядок разделов по сортировке и записать во внутреннюю струкктуру
+    vector<pair<int,int> >vec;
+    for(int l=1 ; l < q+1; l++) {
+        vec.push_back(pair<int, int>(l, layers[l].complexity));
+    }
+    sort(vec.begin(), vec.end(), [](pair<int,int> elem1, pair<int,int> elem2) {return elem1.second > elem2.second;});
+    partitionOrder = vec;
+}
+
+void Web::sort_processors(){
+    // Создать порядок разделов по сортировке и записать во внутреннюю струкктуру
+    vector<pair<int,int> >vec;
+    int i = 0;
+    for(auto processor : processors) {
+        vec.push_back(pair<int, int>(i++, processor->cost));
+    }
+    sort(vec.begin(), vec.end(), [](pair<int,int> elem1, pair<int,int> elem2) {return elem1.second < elem2.second;});
+    processorOrder = vec;
+}
+
+void Web::create_cost_tab(){
+    // Создать порядок разделов по сортировке и записать во внутреннюю струкктуру
+    int i = 0;
+    for(int i = 0; i < partitionOrder.size(); i++){
+        auto partition = partitionOrder[i].first;
+        auto l_p = layers[partition];
+        tab[partition].resize(0);
+        for(int i = 0; i < processorOrder.size(); i++){
+            auto processor = processors[processorOrder[i].first];
+            set<string> result;
+            std::set_intersection(processor->functionality.begin(), processor->functionality.end(),
+                                  l_p.functionality.begin(), l_p.functionality.end(),
+                                  std::inserter(result, result.begin()));
+            if (result == l_p.functionality){
+                tab[partition].push_back(processorOrder[i].first);
+            }
+        }
+    }
+}
+
+
+
+void Web::print_tab(){
+    cout << "TAB\n";
+    for(auto item: tab){
+        cout << item.first << " : ";
+        for (int i = 0; i < item.second.size(); i++){
+            cout << item.second[i] << ",";
+        }
+        cout << "\n";
+    }
+}
+
+
+
+bool Web::find_alloc(string typeoftask){
+    if (typeoftask == "schedule") {
+         // Добавляем процессоры по дефолтному слою
+        for (int iproc=0; iproc < nproc; iproc++){
+            add_proc_layer(iproc);
+        }
+
+        //дополнительная информация
+        hints = nproc*nproc - 1;
+        hints_layer = 5;
+        for(map<int, Layer>::iterator it = layers.begin(); it != layers.end(); it++){
+            n = n + it->second.vertexes.size();
+        }
+        // добавляем вместительность процессоров
+        for (int i=0;i < nproc; i++){
+            processorLoad[i] = mainLoop * processors[i]->performance;
+        }
+
+        // первоначальное распределение
+        // Опредляем порядок разделов изначальные предпочтения
+        for(int i = 1; i <= q;i++){
+            // Наивный вариант нужно что умнее
+            decide_proc(i);
+        }
+        return true;
+    } else if (typeoftask == "synthesis") {
+    
+        sort_partition();
+        sort_processors();
+        cout << "Partitions \n"; 
+        for(int i = 0; i < partitionOrder.size(); i++){
+            cout << i << " " << partitionOrder[i].first << " " << partitionOrder[i].second << "\n";
+        }
+        cout << "Processors \n"; 
+        for(int i = 0; i < processorOrder.size(); i++){
+            cout << i << " " << processorOrder[i].first << " " << processorOrder[i].second << "\n";
+        }
+        create_cost_tab();
+        print_tab();
+        // Добавим процессоры для дефолтной конфигурации
+        for(auto item: tab){
+            add_proc_layer(item.second[0]);
+        }
+        // первоначальное распределение
+        // Опредляем порядок разделов изначальные предпочтения
+        for(int i = 1; i <= q;i++){
+            // Наивный вариант нужно что умнее
+            decide_proc(i);
+        }
+        return true;
+        return true;
+    } else {
+        return false;
     }
 }
 

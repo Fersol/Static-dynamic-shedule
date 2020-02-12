@@ -7,6 +7,7 @@ int main(int argc, char** argv){
     int c = stoi(argv[1]);
     string  filenametasks = argv[2];
     string  filenameprocessors = argv[3];
+    string  typeoftask = argv[4];
 
     string filenamewindows = split(filenametasks, ".")[0];
 
@@ -28,15 +29,20 @@ int main(int argc, char** argv){
 
     Web web = CreateWebFromJobsAndSystem(jobs, processors, c);
     cout << "The network has been created\n";
-    web.maxflow();
-    cout << "The maxflow of the network has been found\n";
-    web.print();
-    list< list<Window*> > windows = CreateWindows(&web);
-    cout << "The windows have been found\n";
-    unsigned int endIime = clock();
+    if (web.find_alloc(typeoftask)){
+        web.maxflow();
+        cout << "The maxflow of the network has been found\n";
+        web.print();
+        list< list<Window*> > windows = CreateWindows(&web);
+        cout << "The windows have been found\n";
+        unsigned int endIime = clock();
 
-    WriteWindowsToFile(windows, filenamewindows, to_string(float(endIime-startIime)/1000), to_string(web.sheduledjobs()), to_string(web.Effectivness()));
-    cout << "Solution has been writen to the file\n"; 
-    cout << "Exit\n";
-    return 0;
+        WriteWindowsToFile(windows, filenamewindows, to_string(float(endIime-startIime)/1000), to_string(web.sheduledjobs()), to_string(web.Effectivness()));
+        cout << "Solution has been writen to the file\n"; 
+        cout << "Exit\n";
+        return 0;
+    } else {
+        cout << "NO TYPE OF TASK like " << typeoftask;
+        return 1;
+    }
 }
