@@ -19,7 +19,8 @@ int Web::finsetneq(SInt& set, int a)
 
 void Web::lift(int l_u, int u)
 {
-        int height = n;
+        // TODO maxint set 
+        int height = 10000000;
         // проход по соседям, минимальная вершина среди тех, куда возможно проталкивание
         for(Neighbors::iterator it_layer = layers[l_u].vertexes[u].neighbors.begin(); it_layer != layers[l_u].vertexes[u].neighbors.end(); it_layer++){
             map<int, NeighborInfo > layer_neighbors = it_layer->second;
@@ -45,8 +46,8 @@ void Web::lift(int l_u, int u)
                     //}
                 }
             }
-            layers[l_u].vertexes[u].h = height + 1;
         }
+        layers[l_u].vertexes[u].h = height + 1;
 }
 
 void Web::window(int l_u, int u)
@@ -138,8 +139,8 @@ bool Web::discharge(int l_u, int u, bool is_first)
         // cout << "Start" << endl;
 
         // проталкивание в сток, это первое возомжное действие
-        if (l_u > q) {
-            cout << "PUSH to DEST " << layers[l_u].vertexes[u].flow << layers[l_u].vertexes[u].capacity << endl;
+        if (l_u > q && is_first_epoch) {
+            cout << "PUSH to DEST " << layers[l_u].vertexes[u].flow << "/" << layers[l_u].vertexes[u].capacity << endl;
             // это слой с интервалами
             if (layers[l_u].vertexes[u].capacity > layers[l_u].vertexes[u].flow){
                 int value = layers[l_u].vertexes[u].exf;
@@ -162,9 +163,9 @@ bool Web::discharge(int l_u, int u, bool is_first)
                 int v = it->first; // Номер вершины соседа
                 NeighborInfo vertex_info = it->second;
                 
-                // cout << "NEIGHBOR " << l_v << " " << v << endl; 
-                // cout << layers[l_u].vertexes[u].h << " " << layers[l_v].vertexes[v].h << endl;
-                // cout << layers[l_u].vertexes[u].neighbors[l_v][v].flow << " " << layers[l_u].vertexes[u].neighbors[l_v][v].cap << endl;
+                cout << "NEIGHBOR " << l_v << " " << v << endl; 
+                cout << layers[l_u].vertexes[u].h << " " << layers[l_v].vertexes[v].h << endl;
+                cout << layers[l_u].vertexes[u].neighbors[l_v][v].flow << " " << layers[l_u].vertexes[u].neighbors[l_v][v].cap << endl;
 
                 //Если можно - протолкнуть
                 if (layers[l_u].vertexes[u].neighbors[l_v][v].cap > layers[l_u].vertexes[u].neighbors[l_v][v].flow && layers[l_u].vertexes[u].h == layers[l_v].vertexes[v].h + 1)
@@ -182,6 +183,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
                 if (hints != 0){
                     // надо что-то менять
                     //    cout << "We want hint" << endl;
+                    cout << "Critical h:" << layers[l_u].vertexes[u].h << "/" << hints_layer << endl;
                     hints--;
                     part_from_proc(layers[l_u].vertexes[u].part, QP[layers[l_u].vertexes[u].part]);
                     //  decide_proc(layers[l].vertexes[u].part);
@@ -208,7 +210,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
         }
         if (!is_first_epoch){
             lift(l_u, u);
-            // cout << "LIFT  " << l_u << " " << u << endl;
+            cout << "LIFT  " << l_u << " " << u << " to " << layers[l_u].vertexes[u].h << endl;
             is_first_epoch = true;
             lifted = true;
         }
@@ -743,6 +745,7 @@ void Web::part_to_proc(int part, int idx_proc_layer){
         }
 
     }
+    cout << "Part " << part << " to Proc " << idx_proc_layer;
 }
 
 void Web::decide_proc(int part){
@@ -1052,6 +1055,9 @@ bool Web::find_alloc(string typeoftask){
                 part_to_proc(p, l);
             }
         }
+        //дополнительная информация
+        hints = nproc*nproc - 1;
+        hints_layer = 5;
         return true;
     } else {
         return false;
