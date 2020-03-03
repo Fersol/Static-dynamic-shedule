@@ -1,6 +1,6 @@
 
 all:
-	g++  -std=c++11 mainh.cpp process_heterogenes.cpp types.cpp -o shedulerH
+	g++  -std=c++14 mainh.cpp process_heterogenes.cpp types.cpp -o shedulerH
 
 zerotest:
 	./shedulerH 1 TestsHeterogenes/TEST/task TestsHeterogenes/TEST/system schedule

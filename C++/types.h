@@ -165,6 +165,7 @@ public:
 
     map<int, int>  processorLoad;
     map<int, set<string> > partitionFunctionality;
+    vector< pair<int, set<int> > > best_system;  // Для записи лучше системы - тип процессора и разделы на нем
     /**
      * Конструктор по умолчанию
      */
@@ -296,11 +297,6 @@ public:
     int sheduledjobs();
 
     /**
-     * Запрещает размещать работы раздела на других ядрах
-     */
-    void part_to_proc(int q, int proc);
-
-    /**
      * Снимаем раздел с ядра и разрешаем ему идти в другие ядра.
      */
     void part_from_proc(int q, int proc);
@@ -309,11 +305,16 @@ public:
      * Решаем на какой процессор разместить раздел
      */
    void decide_proc(int part);
+   
+   /**
+     * Размещение раздела на процессор
+     */
+   void part_to_proc(int part, int idx_proc_layer);
 
     /**
      * Создает слой с вершинами-интервала процессра определенного вида
      */
-   void add_proc_layer(int iproc);
+   int add_proc_layer(int iproc);
 
     /**
      * Печатает состояние сети
@@ -336,15 +337,29 @@ public:
     void create_cost_tab();
 
     /**
-      * Сортирует процессор по порядку увеличения стоимости процессора
+      * Печатает процессоры по порядку увеличения стоимости процессора
       */
     void print_tab();
+
+    /**
+      * Печатают систему
+      */
+    void print_system();
+
+    /**
+      * Находит наилучшую схему для синтеза
+      */
+    void find_best_config();
 
     /**
       * Сортирует процессор по порядку увеличения стоимости процессора
       */
     bool find_alloc(string typeoftask);
 
+    /**
+      * Сортирует процессор по порядку увеличения стоимости процессора
+      */
+    int compute_cost(int proc, set<int> parts); 
 
 };
 
