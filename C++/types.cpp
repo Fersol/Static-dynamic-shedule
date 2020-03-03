@@ -719,6 +719,32 @@ void Web::part_from_proc(int l_q, int l_p){
     cout << "New Proc for " << l_q <<endl;
 }
 
+
+void Web::part_to_proc(int part, int idx_proc_layer){
+    QP[part] = idx_proc_layer;
+
+    // запретить другие пути
+    // Идем по вершинам слоя с работами
+    for(int i=0; i < layers[part].vertexes.size(); i++){
+
+        // проход по соседям, минимальная вершина среди тех, куда возможно проталкивание
+        for(Neighbors::iterator it_layer = layers[part].vertexes[i].neighbors.begin(); it_layer != layers[part].vertexes[i].neighbors.end(); it_layer++){
+            map<int, NeighborInfo > layer_neighbors = it_layer->second;
+            // Номер слоя соседа
+            int l_v = it_layer->first;
+            // Если не наш процессор, то делаем до него пропускные способности в 0
+            if (l_v != idx_proc_layer) {
+                for (map<int, NeighborInfo >::iterator it = layer_neighbors.begin(); it != layer_neighbors.end(); it++){
+                    // Номер вершины соседа
+                    int v = it->first;
+                    layers[part].vertexes[i].neighbors[l_v][v].cap = 0;
+                }
+            }
+        }
+
+    }
+}
+
 void Web::decide_proc(int part){
     // Предыдущее место размещения
     int prohibit_layer = QP[part];
@@ -750,31 +776,10 @@ void Web::decide_proc(int part){
     cout << "final proc:" << idx_proc_layer;
     cout << "free layer:" << free_layer;
     layers[idx_proc_layer].load -= complexity;
-    QP[part] = idx_proc_layer;
-
-    // запретить другие пути
-    // Идем по вершинам слоя с работами
-    for(int i=0; i < layers[part].vertexes.size(); i++){
-
-        // проход по соседям, минимальная вершина среди тех, куда возможно проталкивание
-        for(Neighbors::iterator it_layer = layers[part].vertexes[i].neighbors.begin(); it_layer != layers[part].vertexes[i].neighbors.end(); it_layer++){
-            map<int, NeighborInfo > layer_neighbors = it_layer->second;
-            // Номер слоя соседа
-            int l_v = it_layer->first;
-            // Если не наш процессор, то делаем до него пропускные способности в 0
-            if (l_v != idx_proc_layer) {
-                for (map<int, NeighborInfo >::iterator it = layer_neighbors.begin(); it != layer_neighbors.end(); it++){
-                    // Номер вершины соседа
-                    int v = it->first;
-                    layers[part].vertexes[i].neighbors[l_v][v].cap = 0;
-                }
-            }
-        }
-
-    }
+    part_to_proc(part, idx_proc_layer);
 }
 
-void Web::add_proc_layer(int iproc){
+int Web::add_proc_layer(int iproc){
     // Добавляем по дефолтному слою
     int l_j = free_layer;
     free_layer++;
@@ -823,6 +828,7 @@ void Web::add_proc_layer(int iproc){
         }
     }
     cout << "END OF ADDING PROCESSOR\n";
+    return l_j;
 }
 
 void Web::print(){
@@ -847,7 +853,7 @@ void Web::print(){
 }
 
 void Web::sort_partition(){
-    // Создать порядок разделов по сортировке и записать во внутреннюю струкктуру
+    // Создать порядок разделов по сортировке и записать во внутреннюю структуру
     vector<pair<int,int> >vec;
     for(int l=1 ; l < q+1; l++) {
         vec.push_back(pair<int, int>(l, layers[l].complexity));
@@ -868,7 +874,7 @@ void Web::sort_processors(){
 }
 
 void Web::create_cost_tab(){
-    // Создать порядок разделов по сортировке и записать во внутреннюю струкктуру
+    // Создать порядок разделов по сортировке и записать во внутреннюю структуру
     int i = 0;
     for(int i = 0; i < partitionOrder.size(); i++){
         auto partition = partitionOrder[i].first;
@@ -887,6 +893,86 @@ void Web::create_cost_tab(){
     }
 }
 
+void Web::find_best_config(){
+    cout << "Start finding best configuration" << endl;
+    while (tab.size()!=0) {
+        // Сейчас для каждого будем искать лучшее разбиение
+        map<int, int> best_proc;
+        map<int, set<int> > best_config;
+        map<int, int> cost_function;
+        for(auto item: tab){
+            // Тут описана процедура для одного раздела
+            cout << item.first << " : ";
+            int current_part = item.first;
+            for (int i = 0; i < item.second.size(); i++){
+                cout << item.second[i] << ",";
+            }
+            cout << "\n";
+            // Сейчас будет перебор по всем возможным процессорам
+            map<int, set<int> > proc_config;
+            map<int, int> cost_function_part;
+            for(auto proc: item.second){
+                set<int> parts;
+                parts.insert(current_part);
+                // А тут перебор по доступным разделам
+                
+                for(auto part: tab){
+                    // Если раздел подходит, тут нужно функцию написать TODO
+                    bool accept = false;
+                    for(int i=0; i < part.second.size(); i++){
+                        if (proc == part.second[i]){
+                            accept = true;
+                            break;
+                        }
+                    }
+                    bool is_space = false;
+                    int space = 0;
+                    space += layers[part.first].complexity;
+                    for (auto it = parts.begin(); it != parts.end(); it++){
+                        space += layers[*it].complexity;
+                    }
+                    cout << "Space " << space << " Proc " << processorLoad[proc] << endl;
+                    if (space < processorLoad[proc]) is_space = true;
+                    if (accept && is_space) parts.insert(part.first);
+                }
+                proc_config[proc] = parts;
+                // TODO написать cost функцию
+                cost_function_part[proc] = compute_cost(proc, parts);       
+            }
+            // Найти минимальный по костам процессор
+            auto min = min_element(cost_function_part.begin(), cost_function_part.end(), [](const auto& l, const auto& r) { return l.second < r.second; });
+            auto part_proc = min->first;
+            auto part_set = proc_config[part_proc];
+            // Нашли лучшее для заданного раздела, теперь внесем инфу
+            best_proc[current_part] = part_proc;
+            best_config[current_part] = part_set;
+            cost_function[current_part] = min->second;
+        }
+        auto min = min_element(cost_function.begin(), cost_function.end(), [](const auto& l, const auto& r) { return l.second < r.second; });
+        cout << "Min " << min->second;
+        auto index_min = min->first;
+        auto set = best_config[index_min];
+        auto fit_proc = best_proc[index_min];
+        // Записываем лучшее
+        best_system.push_back(make_pair(fit_proc, set));
+        // Удаляем из tab весь set
+        for(auto item: set){
+            cout << "Delete " << item << endl;
+            tab.erase(item);
+
+        }
+    }
+}
+
+int Web::compute_cost(int proc, set<int> parts){
+    int result = processors[proc]->cost;
+    for(auto item: parts){
+        // Стоимость раздела по размещенному разделу
+        result -= processors[tab[item][0]]->cost;
+    }
+    return result;
+}
+
 
 
 void Web::print_tab(){
@@ -895,6 +981,17 @@ void Web::print_tab(){
         cout << item.first << " : ";
         for (int i = 0; i < item.second.size(); i++){
             cout << item.second[i] << ",";
+        }
+        cout << "\n";
+    }
+}
+
+void Web::print_system(){
+    cout << "SYSTEM\n";
+    for(auto item: best_system){
+        cout << item.first << " : ";
+        for (auto it = item.second.begin(); it != item.second.end(); it++){
+            cout << *it << ",";
         }
         cout << "\n";
     }
@@ -928,7 +1025,10 @@ bool Web::find_alloc(string typeoftask){
         }
         return true;
     } else if (typeoftask == "synthesis") {
-    
+        // добавляем вместительность процессоров
+        for (int i=0;i < nproc; i++){
+            processorLoad[i] = mainLoop * processors[i]->performance;
+        }
         sort_partition();
         sort_processors();
         cout << "Partitions \n"; 
@@ -941,17 +1041,17 @@ bool Web::find_alloc(string typeoftask){
         }
         create_cost_tab();
         print_tab();
-        // Добавим процессоры для дефолтной конфигурации
-        for(auto item: tab){
-            add_proc_layer(item.second[0]);
+        find_best_config();
+        cout<<"sdf\n\nsdf\n";
+        print_system();
+        print_tab();
+        // Добавим процессоры для полученной конфигурации
+        for(auto item: best_system){
+            auto l = add_proc_layer(item.first);
+            for(auto p: item.second){
+                part_to_proc(p, l);
+            }
         }
-        // первоначальное распределение
-        // Опредляем порядок разделов изначальные предпочтения
-        for(int i = 1; i <= q;i++){
-            // Наивный вариант нужно что умнее
-            decide_proc(i);
-        }
-        return true;
         return true;
     } else {
         return false;
