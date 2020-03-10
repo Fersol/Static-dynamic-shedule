@@ -46,6 +46,8 @@ struct Job
 struct TaskHeterogenes
 {
     long long period;     //период задачи
+    long long left; // левая граница
+    long long right; // правая граница
     long long partition;  //раздел задачи
     long long complexity;   //сложность выполнения задачи
     set<string> functionality; //требуемая функциональность
