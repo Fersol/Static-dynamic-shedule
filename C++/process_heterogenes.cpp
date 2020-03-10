@@ -128,6 +128,18 @@ list<TaskHeterogenes*> ReadTasksFromFile(string filename)
             isok = false;
             break;
         }
+        task->left = stoi(*it);
+        it++;
+        if (it == strs.end() || !isok){
+            isok = false;
+            break;
+        }
+        task->right = stoi(*it);
+        it++;
+        if (it == strs.end() || !isok){
+            isok = false;
+            break;
+        }
         vector<string> funcVec = split(*it,";");
         set<string> funcSet(funcVec.begin(), funcVec.end());
         task->functionality = funcSet;
@@ -177,6 +189,7 @@ list<JobHeterogenes*> ReadJobsFromFile(string filename)
             break;
         }
         job->finish = stod(*it);
+        it++;
         if (it == strs.end() || !isok){
             isok = false;
             break;
@@ -205,11 +218,13 @@ list<JobHeterogenes*> TasksToJobs(list<TaskHeterogenes*> tasks)
     for (list<TaskHeterogenes*>::iterator it = tasks.begin(); it != tasks.end(); it++)
     {
         long long period = (*it)->period;
+        long long left = (*it)->left;
+        long long right = (*it)->right;
         for (int i = 0; i < timelap/period; i++ )
         {
             job = new JobHeterogenes;
-            job->start = period * i;
-            job->finish = period * (i + 1);
+            job->start = period * i + left;
+            job->finish = period * i + right;
             job->complexity = (*it)->complexity;
             job->partition = (*it)->partition;
             job->functionality = (*it)->functionality;
