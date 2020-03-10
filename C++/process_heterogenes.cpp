@@ -279,7 +279,7 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
 
            web.layers[temp.part].vertexes.push_back(temp);
            int size = web.layers[temp.part].vertexes.size();
-           web.layers[temp.part].extended.insert(size-1);
+           //web.layers[temp.part].extended.insert(size-1);
 
            parts.insert(temp.part);
            if (temp.part > maxpart) maxpart = temp.part;
