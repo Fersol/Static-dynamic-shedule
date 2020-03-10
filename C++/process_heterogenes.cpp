@@ -362,7 +362,7 @@ list< list<Window*> > CreateWindows(Web* web)
         list<Window*> windows;
         Window* win = new Window;
         float curtime = 0;
-        cout << "First window" << endl;
+        cout << "First window in "<< l_p << endl;
 
         for (int it = 0; it < web->layers[l_p].vertexes.size(); it++){
 

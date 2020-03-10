@@ -222,13 +222,18 @@ bool Web::discharge(int l_u, int u, bool is_first)
     return lifted;
 }
 
-void Web::maxflow()
-{
+bool Web::maxflow(bool check, set<int> parts){
      //Инициализация
 
      //layers[l].vertexes[0].h = n; Это лишнее - общая переменная будет в сети
     // Определяем сложности разделов и процессоров
-    
+     bool full_location = true; // для определения все ли разместили
+     if (parts.size() == 0){
+         // Добавляем все
+         for(int i=1; i<=q; i++){
+             parts.insert(i);
+         }
+     }
      source_flow = 0;
      bool isfirsttime = true;
      bool isendwork = false;
@@ -258,6 +263,7 @@ void Web::maxflow()
                 }
                 // Высоты для вершин-программ изначально равны 1
                 layers[q].vertexes[i].h = 1;
+                
             }
         }
 
@@ -282,7 +288,8 @@ void Web::maxflow()
         {
             isend = true;
             cout << "New way" << endl;
-            for (int i = 1; i < q + 1; i++)//по порядку разделов по порядку слоев 
+            //for (int i = 1; i < q + 1; i++)//по порядку разделов по порядку слоев 
+            for(auto i: parts)
             {   
                 cout << "Partition now: " << i << " to proc" << QP[i] << endl;
                 //Layer& current_layer = layers[i];
@@ -338,7 +345,11 @@ void Web::maxflow()
 
         // Удаляем программу плохую
         if (surplus.size() != 0){
-            
+            // Если нужно выяснить только возможность, то тут все плохо
+            if (check){
+                return false;
+            }
+            full_location = false;
             isendwork = false;
             auto max = max_element(surplus.begin(), surplus.end(), [](const auto& l, const auto& r) { return l.second < r.second; });
             auto task_to_del = max->first;
@@ -352,7 +363,7 @@ void Web::maxflow()
             }
         }
     }
-
+    return full_location;
 }
 
 
@@ -984,8 +995,15 @@ void Web::find_best_config(){
                     if (space < processorLoad[proc]) is_space = true;
                     // Теперь возможность размещения рассмотрим
                     if (accept && is_space){ 
-                        //auto web_copy = copy(*this);
+                        auto web_copy = *this;
+                        // добавляем процессор и пытаемся найти поток
+                        web_copy.add_proc_layer(proc);
                         parts.insert(part.first);
+                        auto good = web_copy.maxflow(true, parts);
+                        if (!good){
+                            parts.erase(part.first);
+                        }
+                        cout << " FREELAYER" << free_layer << endl;
                     }
 
                 }
