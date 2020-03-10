@@ -982,10 +982,14 @@ void Web::find_best_config(){
                     }
                     cout << "Space " << space << " Proc " << processorLoad[proc] << endl;
                     if (space < processorLoad[proc]) is_space = true;
-                    if (accept && is_space) parts.insert(part.first);
+                    // Теперь возможность размещения рассмотрим
+                    if (accept && is_space){ 
+                        //auto web_copy = copy(*this);
+                        parts.insert(part.first);
+                    }
+
                 }
                 proc_config[proc] = parts;
-                // TODO написать cost функцию
                 cost_function_part[proc] = compute_cost(proc, parts);       
             }
             // Найти минимальный по костам процессор
@@ -1065,14 +1069,16 @@ bool Web::find_alloc(string typeoftask){
         for (int i=0;i < nproc; i++){
             processorLoad[i] = mainLoop * processors[i]->performance;
         }
-
+        // определяем порядок разделов
+        sort_partition();
         // первоначальное распределение
         // Опредляем порядок разделов изначальные предпочтения
-        for(int i = 1; i <= q;i++){
+        for(int i = 0; i <= partitionOrder.size(); i++){
             // Наивный вариант нужно что умнее
-            decide_proc(i);
+            decide_proc(partitionOrder[i].first);
         }
         return true;
+
     } else if (typeoftask == "synthesis") {
         // добавляем вместительность процессоров
         for (int i=0;i < nproc; i++){
