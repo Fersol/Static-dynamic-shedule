@@ -1,7 +1,7 @@
-	partition	complexity	period	functionalities	cost
-0	2	12	50	f1	0
-1	1	1	100	f1	0
-2	3	177	200	f1	0
-3	2	32	50	f1	0
-4	1	44	100	f1	0
-5	3	9	100	f1	0
+	partition	complexity	period	options	cost
+0	2	12	50	o1	0
+1	1	1	100	o1	0
+2	3	177	200	o1	0
+3	2	32	50	o1	0
+4	1	44	100	o1	0
+5	3	9	100	o1	0
