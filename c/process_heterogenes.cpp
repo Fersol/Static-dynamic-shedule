@@ -110,6 +110,7 @@ list<TaskHeterogenes*> ReadTasksFromFile(string filename)
         vector<string> strs = split(str, "\t");
         vector<string>::iterator it = strs.begin();
         it++;
+        cout << *it << "\n";
         task->partition = stoi(*it);
         it++;
         if (it == strs.end() || !isok){
