@@ -1,4 +1,4 @@
-	partition	complexity	period	functionalities
-0	1.0	20.0	100.0	f1
-1	2.0	30.0	50.0	f2
-2	3.0	10.0	50.0	f2
+	partition	complexity	period	left	right	functionalities
+0	1.0	20.0	100.0	0.0	100.0	o1
+1	2.0	30.0	50.0	0.0	50.0	o2
+2	3.0	10.0	50.0	0.0	50.0	o2

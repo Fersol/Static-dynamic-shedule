@@ -263,7 +263,7 @@ bool Web::maxflow(bool check, set<int> parts){
                 }
                 // Высоты для вершин-программ изначально равны 1
                 layers[q].vertexes[i].h = 1;
-                
+
             }
         }
 
@@ -789,8 +789,11 @@ void Web::part_to_proc(int part, int idx_proc_layer){
 }
 
 void Web::decide_proc(int part){
+    
     // Предыдущее место размещения
     int prohibit_layer = QP[part];
+
+    cout << "START deciding for partition " << part << " no " << prohibit_layer << endl;
     // Rewrite
     int idx_proc_layer = 0;
     int freeSpace = 0;
@@ -808,7 +811,7 @@ void Web::decide_proc(int part){
             isFunctionality = false;
             cout << "false part" << part << ": proc " << iproc << endl;
         }
-        cout << "Processor load:" << layers[i].load << endl;;
+        cout << "Processor "<< i <<  " load:" << layers[i].load << endl;;
         if (layers[i].load > freeSpace && i != prohibit_layer && isFunctionality) {
             idx_proc_layer = i;
             freeSpace = layers[i].load; 
@@ -816,8 +819,8 @@ void Web::decide_proc(int part){
         //cout << "proc:" << idx_proc_layer << endl;
     }
 
-    cout << "final proc:" << idx_proc_layer;
-    cout << "free layer:" << free_layer;
+    cout << "final proc:" << idx_proc_layer << endl;
+    cout << "free layer:" << free_layer << endl;
     layers[idx_proc_layer].load -= complexity;
     if (idx_proc_layer!=0){
         part_to_proc(part, idx_proc_layer);
@@ -1079,7 +1082,7 @@ bool Web::find_alloc(string typeoftask){
 
         //дополнительная информация
         hints = nproc*nproc - 1;
-        hints_layer = 5;
+        hints_layer = 10;
         for(map<int, Layer>::iterator it = layers.begin(); it != layers.end(); it++){
             n = n + it->second.vertexes.size();
         }
@@ -1127,7 +1130,7 @@ bool Web::find_alloc(string typeoftask){
         }
         //дополнительная информация
         hints = nproc*nproc - 1;
-        hints_layer = 5;
+        hints_layer = 10;
         return true;
     } else {
         return false;
