@@ -1,14 +1,9 @@
 
 all:
-	g++  -std=c++14 mainh.cpp process_heterogenes.cpp types.cpp -o shedulerH
+	g++  -std=c++14 src/mainh.cpp src/process_heterogenes.cpp src/types.cpp -o scheduler
 
-stest:
-	./shedulerH 1 TestsHeterogenes/STEST/task Systems/system2 synthesis
+test_syn:
+	./scheduler 1 tasks/STEST/task systems/system2 synthesis
 
-shtest:
-	./shedulerH 1 TestsHeterogenes/STEST/task Systems/system2 schedule
-
-prod_sh_test:
-	./shedulerH 1 TestsHeterogenes/test_0.csv Systems/system2 schedule
-prod_sh_test1:
-	./shedulerH 1 TestsHeterogenes/test_1.csv Systems/system2 schedule
+test_sch:
+	./scheduler 1 tasks/STEST/task systems/system2 schedule
