@@ -7,3 +7,9 @@ test_syn:
 
 test_sch:
 	./scheduler 1 tasks/test_task.tsv systems/system2 schedule
+
+test:
+	./scheduler 1 tasks/tmp.csv systems/tmp.csv schedule
+
+tests:
+	./scheduler 1 tasks/tmp.csv systems/tmp.csv synthesis

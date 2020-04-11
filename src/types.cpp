@@ -20,8 +20,8 @@ int Web::finsetneq(SInt& set, int a)
 void Web::lift(int l_u, int u)
 {
         // TODO maxint set 
-        cout << "start lift" << l_u << " " << u <<  endl;
-        int height = 10000000;
+        cout << "start lift " << l_u << " " << u << " " << "\n";
+        int height = -1;
         // проход по соседям, минимальная вершина среди тех, куда возможно проталкивание
         for(Neighbors::iterator it_layer = layers[l_u].vertexes[u].neighbors.begin(); it_layer != layers[l_u].vertexes[u].neighbors.end(); it_layer++){
             map<int, NeighborInfo > layer_neighbors = it_layer->second;
@@ -36,19 +36,33 @@ void Web::lift(int l_u, int u)
                 int v = it->first;
                 NeighborInfo vertex = it->second;
                 //if (layers[l].vertexes[u].cap[it->first] > layers[l].vertexes[u].flow[it->first]){
-                if (vertex.cap > vertex.flow){
-                    // Кажется это лишее, теперь не будет источника и стока
-                    // // skip if this is way to destination
-                    // if (it->first == 1) {
-                    //     height = layers[l].vertexes[u].h;
-                    // }
-                    //else{
+                // if (vertex.cap > vertex.flow){
+                //     // Кажется это лишее, теперь не будет источника и стока
+                //     // // skip if this is way to destination
+                //     // if (it->first == 1) {
+                //     //     height = layers[l].vertexes[u].h;
+                //     // }
+                //     //else{
+                //         height = min(height, layers[l_v].vertexes[v].h);
+                //     //}
+                // } else {
+                cout << l_u << " " << u << " to " << l_v << " " << v << "\n";
+                cout << layers[l_u].vertexes[u].neighbors[l_v][v].cap << " " << layers[l_u].vertexes[u].neighbors[l_v][v].flow << "\n";
+                if (layers[l_u].vertexes[u].neighbors[l_v][v].cap > layers[l_u].vertexes[u].neighbors[l_v][v].flow){
+                    cout <<  layers[l_v].vertexes[v].h << "\n";
+                    if (height == -1){
+                        height = layers[l_v].vertexes[v].h;
+                    } else {
                         height = min(height, layers[l_v].vertexes[v].h);
-                    //}
+                    }
                 }
             }
         }
+        if (height == -1){
+            height = hints_layer;
+        }
         layers[l_u].vertexes[u].h = height + 1;
+        cout << " Result is to " << layers[l_u].vertexes[u].h << "\n";
 }
 
 void Web::window(int l_u, int u)
@@ -212,7 +226,7 @@ bool Web::discharge(int l_u, int u, bool is_first)
         if (!is_first_epoch){
             lift(l_u, u);
           //  cout << "LIFT  " << l_u << " " << u << " to " << layers[l_u].vertexes[u].h << endl;
-            is_first_epoch = true;
+            is_first_epoch = false;
             lifted = true;
         }
         else is_first_epoch = false;
@@ -949,7 +963,8 @@ void Web::create_cost_tab(){
             std::set_intersection(processor->functionality.begin(), processor->functionality.end(),
                                   l_p.functionality.begin(), l_p.functionality.end(),
                                   std::inserter(result, result.begin()));
-            if (result == l_p.functionality){
+            cout << layers[partition].complexity << "/" <<  processorLoad[processorOrder[i].first] << "\n";
+            if (result == l_p.functionality && layers[partition].complexity < processorLoad[processorOrder[i].first]){
                 tab[partition].push_back(processorOrder[i].first);
             }
         }
@@ -965,6 +980,7 @@ void Web::find_best_config(){
         map<int, int> cost_function;
         for(auto item: tab){
             // Тут описана процедура для одного раздела
+            cout << "Processors for partition\n";
             cout << item.first << " : ";
             int current_part = item.first;
             for (int i = 0; i < item.second.size(); i++){
@@ -990,25 +1006,34 @@ void Web::find_best_config(){
                     }
                     bool is_space = false;
                     int space = 0;
+                    cout << "Parts " << part.first << " " ;
                     space += layers[part.first].complexity;
                     for (auto it = parts.begin(); it != parts.end(); it++){
                         space += layers[*it].complexity;
+                        cout << *it << " ";
                     }
+                    cout << "\n";
                     cout << "Space " << space << " Proc " << processorLoad[proc] << endl;
                     if (space < processorLoad[proc]) is_space = true;
                     // Теперь возможность размещения рассмотрим
                     if (accept && is_space){ 
                         auto web_copy = *this;
+                        cout << "SEARCH FLOW for partitions:\n";
                         // добавляем процессор и пытаемся найти поток
                         web_copy.add_proc_layer(proc);
                         parts.insert(part.first);
+                        
+                        for(auto i : parts){
+                            cout << i << ",";
+                        }
+                        cout << "\n";
+                        cout << "ON PROCESSOR" << proc << "\n";
                         auto good = web_copy.maxflow(true, parts);
                         if (!good){
                             parts.erase(part.first);
                         }
                         cout << " FREELAYER" << free_layer << endl;
                     }
-
                 }
                 proc_config[proc] = parts;
                 cost_function_part[proc] = compute_cost(proc, parts);       
@@ -1023,17 +1048,17 @@ void Web::find_best_config(){
             cost_function[current_part] = min->second;
         }
         auto min = min_element(cost_function.begin(), cost_function.end(), [](const auto& l, const auto& r) { return l.second < r.second; });
-        cout << "Min " << min->second;
+        cout << "Min " << min->second << "\n ";
         auto index_min = min->first;
         auto set = best_config[index_min];
         auto fit_proc = best_proc[index_min];
         // Записываем лучшее
         best_system.push_back(make_pair(fit_proc, set));
         // Удаляем из tab весь set
+        cout << "Proc " << fit_proc << "\n";
         for(auto item: set){
             cout << "Delete " << item << endl;
             tab.erase(item);
-
         }
     }
 }
@@ -1118,16 +1143,22 @@ bool Web::find_alloc(string typeoftask){
         create_cost_tab();
         print_tab();
         find_best_config();
-        cout<<"sdf\n\nsdf\n";
+        cout<<"BEST CONFIG WAS FOUND\n";
         print_system();
         print_tab();
         // Добавим процессоры для полученной конфигурации
+        int count = 0;
         for(auto item: best_system){
-            auto l = add_proc_layer(item.first);
-            for(auto p: item.second){
-                part_to_proc(p, l);
-            }
+            auto l = add_proc_layer(item.first);   
+            count++;  
         }
+        // Добавим привязку
+        for(int i=0; i < best_system.size(); i++){
+            for(auto p: best_system[i].second){
+                part_to_proc(p, free_layer - count + i);
+            }  
+        }
+        
         //дополнительная информация
         hints = nproc*nproc - 1;
         hints_layer = 10;
