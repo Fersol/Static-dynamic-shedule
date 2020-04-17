@@ -24,12 +24,14 @@ list<TaskHeterogenes*> ReadTasksFromFile(string filename);
 
 /**
  * Преобразует задачи в работы
+ * @param tasks - список задач
  */
 list<JobHeterogenes*> TasksToJobs(list<TaskHeterogenes*> tasks);
 
 /**
  * Считает интервал планирования для всех задач
  * НОК для всех периодов
+ * @param tasks - список задач
  */
 long long TimeToShedule(list<TaskHeterogenes*> tasks);
 
@@ -41,23 +43,26 @@ long long TimeToShedule(list<TaskHeterogenes*> tasks);
 list<JobHeterogenes*> ReadJobsFromFile(string filename);
 
 /**
- * Создает сеть для списка задач
- */
-//Web* CreateWebFromTasks(list<Task*> tasks);
-
-/**
  * Создает сеть для списка работ
+ * @param jobs - список программ
+ * @param processors - список процессоров
+ * @param cTime - сложность переключения раздела
  */
 Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> processors, int cTime);
 
 /**
  * Создает окна по сети, в которой уже построен максимальный поток
+ * @param web - сеть с построенным потоком
  */
 list< list<Window*> > CreateWindows(Web* web);
 
 
 /**
  * Запись окон в файл
+ * @param windows - список окон
+ * @param filename - имя файла для записи результата
+ * @param time - время на переключение
+ * @param works - список программ
  */
 void WriteWindowsToFile(list< list<Window*> > windows, string filename, string time, string works, string eff);
 

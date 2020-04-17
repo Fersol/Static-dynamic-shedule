@@ -1,13 +1,12 @@
 #include "process_heterogenes.h"
 #include <ctime>
 
-int main(int argc, char** argv){
-    cout << "Start\n";
-    bool ok;
-    int c = stoi(argv[1]);
-    string  filenametasks = argv[2];
-    string  filenameprocessors = argv[3];
-    string  typeoftask = argv[4];
+int main(int argc, char** argv) {
+    cout << "Start scheduling\n";
+    int c = stoi(argv[1]);                  // 1 аргумент - это сложность переключения окна
+    string  filenametasks = argv[2];        // 2 аргумент - файл с программами для расписания
+    string  filenameprocessors = argv[3];   // 3 аргумент - файл с описанием системы
+    string  typeoftask = argv[4];           // 4 аргумент - тип задачи (синтез или расписание)
 
     string filenamewindows = split(filenametasks, ".")[0];
 
@@ -17,8 +16,7 @@ int main(int argc, char** argv){
     vector<Processor*> processors = ReadSystemFromFile(filenameprocessors);
     cout << "System has been read from file\n";
 
-    if (tasks.size() == 0)
-    {
+    if (tasks.size() == 0) {
         cout << "Error";
         return 1;
     }
@@ -29,14 +27,13 @@ int main(int argc, char** argv){
 
     Web web = CreateWebFromJobsAndSystem(jobs, processors, c);
     cout << "The network has been created\n";
-    if (web.find_alloc(typeoftask)){
+    if (web.find_alloc(typeoftask)) {
+        // Запуск алгоритма построения потока в сети
         web.maxflow();
         cout << "The maxflow of the network has been found\n";
-        web.print();
         list< list<Window*> > windows = CreateWindows(&web);
         cout << "The windows have been found\n";
         unsigned int endIime = clock();
-
         WriteWindowsToFile(windows, filenamewindows, to_string(float(endIime-startIime)/1000), to_string(web.sheduledjobs()), to_string(web.Effectivness()));
         cout << "Solution has been writen to the file\n"; 
         cout << "Exit\n";

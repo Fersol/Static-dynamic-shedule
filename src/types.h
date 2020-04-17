@@ -25,49 +25,30 @@ const int attemptCount = 5;
 
 enum VType{ DEFAULT, JOB, INTERVAL, SOURCE, DEST };
 
-struct Task
-{
-    long long period;     //период задачи
-    long long partition;  //раздел задачи
-    long long duration;   //длительность выполнения задачи
-};
-
-
-
-struct Job
-{   
-    int numTask;  // номер задачи
-    long long start;      //время начала директивного интервала
-    long long finish;     //время завершения директивного интервала
-    int partition;  //раздел работы
-    long duration;   //длительность выполнения работы
-};
-
 struct TaskHeterogenes
 {
-    long long period;     //период задачи
-    long long left; // левая граница
-    long long right; // правая граница
-    long long partition;  //раздел задачи
-    long long complexity;   //сложность выполнения задачи
-    set<string> functionality; //требуемая функциональность
+    long long period;          // период задачи
+    long long left;            // левая граница
+    long long right;           // правая граница
+    long long partition;       // раздел задачи
+    long long complexity;      // сложность выполнения задачи
+    set<string> functionality; // требуемая функциональность
 };
-
 
 struct JobHeterogenes
 {   
-    int numTask;  // номер задачи
-    long long start;      //время начала директивного интервала
-    long long finish;     //время завершения директивного интервала
-    int partition;  //раздел работы
-    long complexity;   //сложность выполнения работы
-    set<string> functionality; //требуемая функциональность
+    int numTask;               // номер задачи
+    long long start;           // время начала директивного интервала
+    long long finish;          // время завершения директивного интервала
+    int partition;             // раздел работы
+    long complexity;           // сложность выполнения работы
+    set<string> functionality; // требуемая функциональность
 };
 
 struct Processor
 {
-    int performance; //performance/complexity = time
-    int cost; 
+    int performance;           // производительность процессора
+    int cost;                  // стоимость процессора
     set<string> functionality; // обеспечиваемая функциональность
 };
 
@@ -85,54 +66,47 @@ struct NeighborInfo
     int flow = 0;
     int cap = 0;
 };
-//typedef std::pair<int, int> NeighborInfo;
 
 typedef map<int, map<int, NeighborInfo> > Neighbors;
 
 struct Vertex
 {
  public:
-  int l = 0; // слой вершины ?
-  int me = 0; // номер вершины в слое ? 
-  int exf = 0;					//избыточный поток через вершину
-  int part = 0;					//разделы к которым принадлежит вершина для работ, 0 для интервалов
-  int h = 0;					//высота вершины
-  int proc = -1;                     // номер процессора для вершины интервала
-  int cTime; // сложность переключения
+  int l = 0;        // слой вершины 
+  int me = 0;       // номер вершины в слое 
+  int exf = 0;			// избыточный поток через вершину
+  int part = 0;			// разделы к которым принадлежит вершина для работ, 0 для интервалов
+  int h = 0;				// высота вершины
+  int proc = -1;    // номер процессора для вершины интервала
+  int cTime;        // сложность переключения
   long long stTime = 0;
   long long finTime = 0;
   long long duration = 0;
-  set<string> options; // метки вершины
-  //здесь определены соседи (в следующих 2-х строчках
-  Neighbors neighbors;
-  //neighbors[0][2].flow = neighbors[]
-//   map<int, int> flow;
-//   map<int, int> cap;
-  int capacity; // cколько вершина может принять потока
-  int flow; // сколько вершина приняла потока
-  int numTask;     //номер задания
-  int chWdw = 0;		  		//количество переключений в интервале = количество разделов - 1;
-  VType type = DEFAULT;		//тип вершины в зависимости от слоя - работа, интервал, сток, исток
-  vector<int> partIn;				//размер вектора равен количеству разделов + 1,
-  //хранит кол-во поток каждого раздела в вершину
-  //Только для вершин интервалов
-  set<int> setpart;//множество разделов
-//   int nextItr = 0;//следущая вершина интервал по времени, 0 - значит нет
-//   int prevItr = 0;//предыдущая вершина интервал по времени, 0 - значит нет
-  bool isRWin = false;//есть ли переключение на правом стыке интервала
-  bool isLWin = false;//есть ли переключение на левом стыке интервала
-  int firstPart = 0;// 0 - значит нет
-  int lastPart = 0;// 0 - значит нет
+  set<string> options;
+  Neighbors neighbors;    // здесь определены соседи
+  int capacity;           // cколько вершина может принять потока
+  int flow;               // сколько вершина приняла потока
+  int numTask;            // номер задания
+  int chWdw = 0;		  		// количество переключений в интервале = количество разделов - 1;
+  VType type = DEFAULT;		// тип вершины в зависимости от слоя - работа, интервал, сток, исток
+  vector<int> partIn;		  // размер вектора равен количеству разделов + 1,
+  // Хранит кол-во поток каждого раздела в вершину
+  // Только для вершин интервалов
+  set<int> setpart;       // множество разделов
+  bool isRWin = false;    // есть ли переключение на правом стыке интервала
+  bool isLWin = false;    // есть ли переключение на левом стыке интервала
+  int firstPart = 0;      // 0 - значит нет
+  int lastPart = 0;       // 0 - значит нет
 };
 
 class Layer
 { 
  public:
   vector<Vertex> vertexes;
-  vector<int> extended; // переполненные вершины
-  int ptype = -1; // тип процессора слоя, -1 - слои с разделами.
-  int complexity;  // сложность для раздела
-  int load;        // доступная нагрузка для процессора
+  vector<int> extended;      // переполненные вершины
+  int ptype = -1;            // тип процессора слоя, -1 - слои с разделами.
+  int complexity;            // сложность для раздела
+  int load;                  // доступная нагрузка для процессора
   set<string> functionality; // возможности процессора и разделов
 
 };
@@ -140,34 +114,30 @@ class Layer
 class Web
 {
 public:
-    int hints;           // число попыток на перестройку сети, до скидывания работы. -> lift
-    int hints_layer;     // число попыток
-    int cw; 			 //время на переключение окна
-    int n;				 //количество вершин
-    int nproc;           // число процессоров
-    int num_of_works;       //количество вершин-работ
-    int q;				 //количество разделов
-    int source_flow; // Размер потока из источника
-    int dest_flow; // Размер потока в сток
-    int layer_int; // Первый слой с интервалами
-    int free_layer; // номер свободного слоя
-    // int src;   			 //номер вершины источника
-    // int dest;			 //номер вершины стока
-    int hard;            //сложность расписания
-   // QMap< QPair<int, int>, int > COR; // коррекции сети, которые были сделаны из работ в интервалы
-    map<int,set<int> > P;    //переполненные вершины по разделам, 0 - вершины интервалы
-    map<int, Layer> layers;   //cлои c вершинами
-    // vector<Vertex> verVec;   //cами вершины
-    map< int, int> QP; // Соответствие раздела слою (который соответствует процессору).
+    int hints;               // число попыток на перестройку сети, до скидывания работы. -> lift
+    int hints_layer;         // число попыток
+    int cw; 			           // время на переключение окна
+    int n;				           // количество вершин
+    int nproc;               // число процессоров
+    int num_of_works;        // количество вершин-работ
+    int q;				           // количество разделов
+    int source_flow;         // размер потока из источника
+    int dest_flow;           // Размер потока в сток
+    int layer_int;           // первый слой с интервалами
+    int free_layer;          // номер свободного слоя
+    int hard;                // сложность расписания
+    map<int,set<int> > P;    // переполненные вершины по разделам, 0 - вершины интервалы
+    map<int, Layer> layers;  // cлои c вершинами
+    map< int, int> QP;       // Соответствие раздела слою (который соответствует процессору).
     vector<Processor*> processors;
-    int mainLoop; // НОК работ - интервал планирования
+    int mainLoop;            // НОК работ - интервал планирования
     vector<pair<int,int> > partitionOrder;
     vector<pair<int,int> > processorOrder;
     map< int, vector<int> > tab;   // Таблица для поиска оптимальных процессоров
-
     map<int, int>  processorLoad;
     map<int, set<string> > partitionFunctionality;
     vector< pair<int, set<int> > > best_system;  // Для записи лучше системы - тип процессора и разделы на нем
+
     /**
      * Конструктор по умолчанию
      */
@@ -187,12 +157,6 @@ public:
      * Создать перключение окна в интервале (только для вершин интервалов)
      */
     void window(int l, int u);
-    
-    /**
-     * Восстановить сеть от блоков по неудачам
-     *
-    void cureWeb();
-    */
     
     /**
      * Отменить перключение окна в интервале (только для вершин интервалов)
