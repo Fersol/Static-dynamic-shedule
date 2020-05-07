@@ -106,7 +106,8 @@ class Layer
   vector<Vertex> vertexes;
   vector<int> extended;      // переполненные вершины
   int ptype = -1;            // тип процессора слоя, -1 - слои с разделами.
-  long long  complexity;            // сложность для раздела
+  map<int, long long>  complexities;            // сложность для раздела на разных процессорах
+  long long complexity;   // Сложность для интервалов
   long long load;                  // доступная нагрузка для процессора
   set<string> functionality; // возможности процессора и разделов
 

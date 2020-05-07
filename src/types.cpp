@@ -623,6 +623,10 @@ void Web::part_to_proc(int part, int idx_proc_layer) {
     // Запретить другие пути
     // Идем по вершинам слоя с работами
     for(int i=0; i < layers[part].vertexes.size(); i++) {
+        // Указываем новую сложность
+        int iproc = layers[idx_proc_layer].ptype;
+        cout << "ATTENTION " << iproc << endl;
+        layers[part].vertexes[i].capacity = layers[part].vertexes[i].capacities[iproc];
         // Проход по соседям, минимальная вершина среди тех, куда возможно проталкивание
         for(Neighbors::iterator it_layer = layers[part].vertexes[i].neighbors.begin(); it_layer != layers[part].vertexes[i].neighbors.end(); it_layer++) {
             map<int, NeighborInfo > layer_neighbors = it_layer->second;
@@ -651,16 +655,20 @@ void Web::part_to_proc(int part, int idx_proc_layer) {
 }
 
 void Web::decide_proc(int part) {
+    cout << "DECIDE FOR " << part << endl;
     // Предыдущее место размещения
     int prohibit_layer = QP[part];
     int idx_proc_layer = 0;
     int freeSpace = 0;
-    int complexity = layers[part].complexity;
+    int cur_complexity = 0;
+    
 
     // Идем по слоям-процессорам и выбираем подходящий слой
     for(int i=layer_int; i <free_layer; i++) {
-        bool isFunctionality = true;
         int iproc = layers[i].ptype;
+        int complexity = layers[part].complexities[iproc];
+        bool isFunctionality = true;
+
         set<string> result;
         std::set_intersection(processors[iproc]->functionality.begin(),processors[iproc]->functionality.end(),
                               partitionFunctionality[part].begin(), partitionFunctionality[part].end(),
@@ -668,14 +676,16 @@ void Web::decide_proc(int part) {
         if (result != partitionFunctionality[part]){
             isFunctionality = false;
         }
-        if (layers[i].load > freeSpace && i != prohibit_layer && isFunctionality) {
+        int new_freeSpace = layers[i].load - complexity; // Сколько осталось загрузки на процессор
+        if (new_freeSpace > freeSpace && i != prohibit_layer && isFunctionality) {
             idx_proc_layer = i;
-            freeSpace = layers[i].load; 
+            freeSpace = new_freeSpace; 
+            cur_complexity = complexity;
         }
     }
 
 
-    layers[idx_proc_layer].load -= complexity;
+    layers[idx_proc_layer].load -= cur_complexity;
     if (idx_proc_layer!=0){
         part_to_proc(part, idx_proc_layer);
     } else { 
@@ -768,8 +778,9 @@ void Web::print() {
 void Web::sort_partition() {
     // Создать порядок разделов по сортировке и записать во внутреннюю структуру
     vector<pair<int,int> >vec;
+    vec.resize(0);
     for(int l=1 ; l < q+1; l++) {
-        vec.push_back(pair<int, int>(l, layers[l].complexity));
+        vec.push_back(pair<int, int>(l, layers[l].complexities[0])); // По умолчанию на первом процессоре сравнивается
     }
     sort(vec.begin(), vec.end(), [](pair<int,int> elem1, pair<int,int> elem2) {return elem1.second > elem2.second;});
     partitionOrder = vec;
@@ -794,14 +805,15 @@ void Web::create_cost_tab() {
         auto l_p = layers[partition];
         tab[partition].resize(0);
         for(int i = 0; i < processorOrder.size(); i++){
-            auto processor = processors[processorOrder[i].first];
+            int iproc = processorOrder[i].first;
+            auto processor = processors[iproc];
             set<string> result;
             std::set_intersection(processor->functionality.begin(), processor->functionality.end(),
                                   l_p.functionality.begin(), l_p.functionality.end(),
                                   std::inserter(result, result.begin()));
-            cout << layers[partition].complexity << "/" <<  processorLoad[processorOrder[i].first] << "\n";
-            if (result == l_p.functionality && layers[partition].complexity < processorLoad[processorOrder[i].first]){
-                tab[partition].push_back(processorOrder[i].first);
+            cout << layers[partition].complexities[iproc] << "/" <<  processorLoad[processorOrder[i].first] << "\n";
+            if (result == l_p.functionality && layers[partition].complexities[iproc] < processorLoad[iproc]){
+                tab[partition].push_back(iproc);
             }
         }
     }
@@ -834,9 +846,9 @@ void Web::find_best_config() {
                     }
                     bool is_space = false;
                     int space = 0;
-                    space += layers[part.first].complexity;
+                    space += layers[part.first].complexities[proc];
                     for (auto it = parts.begin(); it != parts.end(); it++) {
-                        space += layers[*it].complexity;
+                        space += layers[*it].complexities[proc];
                         cout << *it << " ";
                     }
                     if (space < processorLoad[proc]) is_space = true;
@@ -940,7 +952,7 @@ bool Web::find_alloc(string typeoftask) {
         sort_partition();
         // Первоначальное распределение
         // Опредляем порядок разделов изначальные предпочтения
-        for(int i = 0; i <= partitionOrder.size(); i++) {
+        for(int i = 0; i < partitionOrder.size(); i++) {
             // Наивный вариант нужно что умнее
             decide_proc(partitionOrder[i].first);
         }

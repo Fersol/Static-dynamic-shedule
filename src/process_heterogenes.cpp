@@ -199,8 +199,10 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
             temp.capacities = (*it)->complexities;
             temp.duration = temp.capacities[0];
             temp.capacity = temp.capacities[0];
-            temp.part = (*it)->partition;     
-            web.layers[temp.part].complexity += temp.capacities[0];
+            temp.part = (*it)->partition;  
+            for (int i = 0; i < temp.capacities.size(); i++){
+                web.layers[temp.part].complexities[i] += temp.capacities[i];
+            }   
             temp.stTime = (*it)->start;
             temp.finTime = (*it)->finish;
             temp.cTime = cTime;
