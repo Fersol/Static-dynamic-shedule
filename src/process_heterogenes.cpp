@@ -109,12 +109,6 @@ list<TaskHeterogenes*> ReadTasksFromFile(string filename) {
             isok = false;
             break;
         }
-        task->complexity = stoi(*it);
-        it++;
-        if (it == strs.end() || !isok){
-            isok = false;
-            break;
-        }
         task->period = stoi(*it);
         it++;
         if (it == strs.end() || !isok){
@@ -136,6 +130,16 @@ list<TaskHeterogenes*> ReadTasksFromFile(string filename) {
         vector<string> funcVec = split(*it,";");
         set<string> funcSet(funcVec.begin(), funcVec.end());
         task->functionality = funcSet;
+        it++;
+        vector<long long> complexities;
+        complexities.resize(0);
+        int complexity;
+        while (it != strs.end()){
+          complexity = stoi(*it);
+          complexities.push_back(complexity);
+          it++;
+        }
+        task->complexities = complexities;
         tasks.push_back(task);
     }
     file.close();
@@ -159,7 +163,7 @@ list<JobHeterogenes*> TasksToJobs(list<TaskHeterogenes*> tasks)
             job = new JobHeterogenes;
             job->start = period * i + left;
             job->finish = period * i + right;
-            job->complexity = (*it)->complexity;
+            job->complexities = (*it)->complexities;
             job->partition = (*it)->partition;
             job->functionality = (*it)->functionality;
             job->numTask = k;
@@ -192,10 +196,11 @@ Web CreateWebFromJobsAndSystem(list<JobHeterogenes*> jobs, vector<Processor*> pr
             }
             // Добавляем вершину
             Vertex temp;
-            temp.capacity = (*it)->complexity;
-            temp.duration = (*it)->complexity;
+            temp.capacities = (*it)->complexities;
+            temp.duration = temp.capacities[0];
+            temp.capacity = temp.capacities[0];
             temp.part = (*it)->partition;     
-            web.layers[temp.part].complexity += temp.duration;
+            web.layers[temp.part].complexity += temp.capacities[0];
             temp.stTime = (*it)->start;
             temp.finTime = (*it)->finish;
             temp.cTime = cTime;

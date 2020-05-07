@@ -207,7 +207,7 @@ bool Web::maxflow(bool check, set<int> parts) {
         isendwork = true;
         //layers[l].vertexes[0].h = attemptCount;
 
-        // Выставляем начальные потоки - пересмотреть
+        // Выставляем начальные потоки 
         cout << "Layer int: " << layer_int << endl;
         for(int q=1; q < layer_int; q++) {
             for(int i = 0; i < layers[q].vertexes.size(); i++) {
@@ -735,7 +735,7 @@ int Web::add_proc_layer(int iproc) {
     for (int j=0; j < layers[l_j].vertexes.size(); j++) {
         layers[l_j].vertexes[j].partIn.resize(q + 1);
         //  Учитываем, что на переключение задано время
-        layers[l_j].vertexes[j].cTime = layers[l_j].vertexes[j].cTime * proc_performance;
+        layers[l_j].vertexes[j].cTime = layers[l_j].vertexes[j].cTime; //* proc_performance;
         for(int k = 0; k < q + 1; k++) {
             layers[l_j].vertexes[j].partIn[k] = 0;
         }

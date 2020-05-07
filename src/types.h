@@ -31,7 +31,7 @@ struct TaskHeterogenes
     long long left;            // левая граница
     long long right;           // правая граница
     long long partition;       // раздел задачи
-    long long complexity;      // сложность выполнения задачи
+    vector<long long> complexities;      // сложности выполнения задачи на процессорах
     set<string> functionality; // требуемая функциональность
 };
 
@@ -41,7 +41,7 @@ struct JobHeterogenes
     long long start;           // время начала директивного интервала
     long long finish;          // время завершения директивного интервала
     int partition;             // раздел работы
-    long complexity;           // сложность выполнения работы
+    vector<long long> complexities;           // сложность выполнения работы
     set<string> functionality; // требуемая функциональность
 };
 
@@ -74,7 +74,7 @@ struct Vertex
  public:
   int l = 0;        // слой вершины 
   int me = 0;       // номер вершины в слое 
-  long long exf = 0;			// избыточный поток через вершину
+  long long exf = 0;			// избerыточный поток через вершину
   int part = 0;			// разделы к которым принадлежит вершина для работ, 0 для интервалов
   int h = 0;				// высота вершины
   int proc = -1;    // номер процессора для вершины интервала
@@ -84,7 +84,8 @@ struct Vertex
   long long duration = 0;
   set<string> options;
   Neighbors neighbors;    // здесь определены соседи
-  int capacity;           // cколько вершина может принять потока
+  vector<long long> capacities;  // необходимые сложности для каждого процессора
+  long long capacity;           // cколько вершина может принять потока
   long long flow;               // сколько вершина приняла потока
   int numTask;            // номер задания
   int chWdw = 0;		  		// количество переключений в интервале = количество разделов - 1;
