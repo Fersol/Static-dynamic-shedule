@@ -63,8 +63,8 @@ struct Window
 
 struct NeighborInfo
 {
-    int flow = 0;
-    int cap = 0;
+    long long flow = 0;
+    long long cap = 0;
 };
 
 typedef map<int, map<int, NeighborInfo> > Neighbors;
@@ -74,18 +74,18 @@ struct Vertex
  public:
   int l = 0;        // слой вершины 
   int me = 0;       // номер вершины в слое 
-  int exf = 0;			// избыточный поток через вершину
+  long long exf = 0;			// избыточный поток через вершину
   int part = 0;			// разделы к которым принадлежит вершина для работ, 0 для интервалов
   int h = 0;				// высота вершины
   int proc = -1;    // номер процессора для вершины интервала
-  int cTime;        // сложность переключения
+  long long cTime;        // сложность переключения
   long long stTime = 0;
   long long finTime = 0;
   long long duration = 0;
   set<string> options;
   Neighbors neighbors;    // здесь определены соседи
   int capacity;           // cколько вершина может принять потока
-  int flow;               // сколько вершина приняла потока
+  long long flow;               // сколько вершина приняла потока
   int numTask;            // номер задания
   int chWdw = 0;		  		// количество переключений в интервале = количество разделов - 1;
   VType type = DEFAULT;		// тип вершины в зависимости от слоя - работа, интервал, сток, исток
@@ -105,8 +105,8 @@ class Layer
   vector<Vertex> vertexes;
   vector<int> extended;      // переполненные вершины
   int ptype = -1;            // тип процессора слоя, -1 - слои с разделами.
-  int complexity;            // сложность для раздела
-  int load;                  // доступная нагрузка для процессора
+  long long  complexity;            // сложность для раздела
+  long long load;                  // доступная нагрузка для процессора
   set<string> functionality; // возможности процессора и разделов
 
 };
@@ -116,13 +116,13 @@ class Web
 public:
     int hints;               // число попыток на перестройку сети, до скидывания работы. -> lift
     int hints_layer;         // число попыток
-    int cw; 			           // время на переключение окна
+    long long cw; 			           // время на переключение окна
     int n;				           // количество вершин
     int nproc;               // число процессоров
     int num_of_works;        // количество вершин-работ
     int q;				           // количество разделов
-    int source_flow;         // размер потока из источника
-    int dest_flow;           // Размер потока в сток
+    long long source_flow;         // размер потока из источника
+    long long dest_flow;           // Размер потока в сток
     int layer_int;           // первый слой с интервалами
     int free_layer;          // номер свободного слоя
     int hard;                // сложность расписания
@@ -200,7 +200,7 @@ public:
      * @param v - вершина интервал
      * @return
      */
-    int test(int l1, int u, int l2, int v, int value);
+    long long test(int l1, int u, int l2, int v, long long value);
 
     /**
      * Считает эффективность построенных окон по времнной сложности размещенных задач
@@ -215,7 +215,7 @@ public:
      * @param ni - следующий непустой интервал или 0, если его нет
      * @param pi - предыдущий непустой интревал или 0, если его нет
      */
-    void checkpartadd(int l, int u, int part, int value, int ni, int pi);
+    void checkpartadd(int l, int u, int part, long long value, int ni, int pi);
 
     /**
      * Учитывает раздел для вершины при отведении потока
@@ -223,7 +223,7 @@ public:
      * @param part - номер раздела, который добавляется
      * @param value - размер добавляемого потока
      */
-    void checkpartdec(int l, int v, int part, int value);
+    void checkpartdec(int l, int v, int part, long long value);
 
     /**
      * Корректирует окна для данной вершины

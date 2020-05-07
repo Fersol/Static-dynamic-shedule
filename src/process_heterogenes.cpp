@@ -305,7 +305,7 @@ list< list<Window*> > CreateWindows(Web* web) {
                 windows.push_back(win);
                 win = new Window;
                 //открываем новое окно
-                curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
+                curtime+=float(web->cw);//web->processors[web->layers[l_p].ptype]->performance;
                 win->start = curtime;
                 win->partition = web->layers[l_p].vertexes[it].firstPart;
                 win->ptype = web->layers[l_p].ptype;
@@ -344,7 +344,7 @@ list< list<Window*> > CreateWindows(Web* web) {
                 for(set<int>::iterator its = web->layers[l_p].vertexes[it].setpart.begin(); its != web->layers[l_p].vertexes[it].setpart.end(); its++){
                     if (*its == web->layers[l_p].vertexes[it].lastPart || *its == web->layers[l_p].vertexes[it].firstPart) continue;
                     win = new Window;
-                    curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
+                    curtime+=float(web->cw);//web->processors[web->layers[l_p].ptype]->performance;
                     win->start = curtime;
                     win->partition = *its;
                     win->ptype = web->layers[l_p].ptype;
@@ -375,7 +375,7 @@ list< list<Window*> > CreateWindows(Web* web) {
                     windows.push_back(win);
                 }
                 win = new Window;
-                curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
+                curtime+=float(web->cw);//web->processors[web->layers[l_p].ptype]->performance;
                 win->start = curtime;
                 win->partition = web->layers[l_p].vertexes[it].lastPart;
                 win->ptype = web->layers[l_p].ptype;
@@ -414,7 +414,7 @@ list< list<Window*> > CreateWindows(Web* web) {
                 windows.push_back(win);
                 win = new Window;
                 //открываем новое окно
-                curtime+=float(web->cw)/web->processors[web->layers[l_p].ptype]->performance;
+                curtime+=float(web->cw);//web->processors[web->layers[l_p].ptype]->performance;
                 win->start = curtime;
                 win->partition = web->layers[l_p].vertexes[it+1].firstPart;
                 win->ptype = web->layers[l_p].ptype;

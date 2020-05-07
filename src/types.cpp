@@ -51,7 +51,7 @@ void Web::window(int l_u, int u) {
     if (layers[l_u].vertexes[u].type == INTERVAL){
         layers[l_u].vertexes[u].capacity -= layers[l_u].vertexes[u].cTime;
         if (layers[l_u].vertexes[u].flow > layers[l_u].vertexes[u].capacity){
-            int value = layers[l_u].vertexes[u].capacity - layers[l_u].vertexes[u].flow;
+            long long value = layers[l_u].vertexes[u].capacity - layers[l_u].vertexes[u].flow;
             layers[l_u].vertexes[u].flow += value;
             layers[l_u].vertexes[u].exf -= value;
 
@@ -65,7 +65,7 @@ void Web::clwindow(int l_u, int u) {
     if (layers[l_u].vertexes[u].type == INTERVAL){
         layers[l_u].vertexes[u].capacity += layers[l_u].vertexes[u].cTime;
         if (layers[l_u].vertexes[u].exf >= layers[l_u].vertexes[u].cTime){
-            int value = layers[l_u].vertexes[u].cTime;
+            long long value = layers[l_u].vertexes[u].cTime;
             layers[l_u].vertexes[u].flow += value;
             layers[l_u].vertexes[u].exf -= value;
         }
@@ -78,8 +78,8 @@ void Web::clwindow(int l_u, int u) {
 
 void Web::push(int l_u, int u, int l_v, int v, bool is_first_epoch) {
     int ni, pi;
-    int value = std::min(layers[l_u].vertexes[u].neighbors[l_v][v].cap - layers[l_u].vertexes[u].neighbors[l_v][v].flow, layers[l_u].vertexes[u].exf);
-    if (layers[l_v].vertexes[v].type == INTERVAL && is_first_epoch) value = std::max(0,(std::min(value, layers[l_v].vertexes[v].capacity - layers[l_v].vertexes[v].flow -(test(l_u, u, l_v, v, value))*layers[l_u].vertexes[u].cTime) -layers[l_v].vertexes[v].exf));
+    long long value = std::min(layers[l_u].vertexes[u].neighbors[l_v][v].cap - layers[l_u].vertexes[u].neighbors[l_v][v].flow, layers[l_u].vertexes[u].exf);
+    if (layers[l_v].vertexes[v].type == INTERVAL && is_first_epoch) value = std::max((long long)0,(std::min(value, layers[l_v].vertexes[v].capacity - layers[l_v].vertexes[v].flow -(test(l_u, u, l_v, v, value))*layers[l_u].vertexes[u].cTime) -layers[l_v].vertexes[v].exf));
     if (value == 0){
         return;
     }
@@ -114,10 +114,11 @@ bool Web::discharge(int l_u, int u, bool is_first) {
     bool lifted = false;
     bool is_first_epoch = true;
     while (layers[l_u].vertexes[u].exf > 0) {
+        
         // Проталкивание в сток, это первое возомжное действие
         if (l_u > q && is_first_epoch) {      
             if (layers[l_u].vertexes[u].capacity > layers[l_u].vertexes[u].flow) { 
-                int value = layers[l_u].vertexes[u].exf;
+                long long value = layers[l_u].vertexes[u].exf;
                 if (layers[l_u].vertexes[u].flow + value > layers[l_u].vertexes[u].capacity) {
                     value = layers[l_u].vertexes[u].capacity - layers[l_u].vertexes[u].flow;
                 } 
@@ -136,13 +137,18 @@ bool Web::discharge(int l_u, int u, bool is_first) {
                 int v = it->first; // номер вершины соседа
                 NeighborInfo vertex_info = it->second;
                 // Если можно - протолкнуть
-                if (layers[l_u].vertexes[u].neighbors[l_v][v].cap > layers[l_u].vertexes[u].neighbors[l_v][v].flow && layers[l_u].vertexes[u].h == layers[l_v].vertexes[v].h + 1) {   
+                if (layers[l_u].vertexes[u].neighbors[l_v][v].cap > layers[l_u].vertexes[u].neighbors[l_v][v].flow && layers[l_u].vertexes[u].h == layers[l_v].vertexes[v].h + 1) { 
+                    cout << "TRY PUSH AGAIN " << layers[l_u].vertexes[u].exf << endl;  
                     push(l_u, u, l_v, v, is_first_epoch);
+                    if (layers[l_u].vertexes[u].exf == 0){
+                        return lifted;
+                    }
                 }
             }
         }
 
         if (l_u <= q) {
+            cout << "TRY AGAIN" << endl;
             // Это слой с работами
             // Если уже никуда не проталкивается// TODO n
             if (layers[l_u].vertexes[u].exf > 0 && layers[l_u].vertexes[u].h > hints_layer) {
@@ -151,16 +157,18 @@ bool Web::discharge(int l_u, int u, bool is_first) {
                     hints--;
                     part_from_proc(layers[l_u].vertexes[u].part, QP[layers[l_u].vertexes[u].part]);
                     lift(l_u, u);
+                    cout << "THERE 2" << endl;
                     lifted = true;
                 }
                 else {
                     // Убираем поток навсегда отсюда
-                    int value = layers[l_u].vertexes[u].exf;
+                    long long value = layers[l_u].vertexes[u].exf;
                     layers[l_u].vertexes[u].exf -= value;
                     layers[l_u].vertexes[u].flow += value;
                     cout << "PUSH to Source " << l_u << " " << u << " " << layers[l_u].vertexes[u].flow << endl;
                 }
             }
+            cout << "im here" << endl;
         }
 
         // Первый раз только один проход по всем вершинам
@@ -169,6 +177,7 @@ bool Web::discharge(int l_u, int u, bool is_first) {
         }
         if (!is_first_epoch) {
             lift(l_u, u);
+            cout << "THERE 1" << endl;
             is_first_epoch = false;
             lifted = true;
         }
@@ -314,13 +323,13 @@ void Web::deletework(int l_u, int u) {
             NeighborInfo vertex_info = it->second;
 
             if (layers[l_v].vertexes[v].type == INTERVAL) {
-                int value = layers[l_u].vertexes[u].neighbors[l_v][v].flow;
+                long long value = layers[l_u].vertexes[u].neighbors[l_v][v].flow;
 
                 layers[l_u].vertexes[u].neighbors[l_v][v].flow -= value;
                 layers[l_v].vertexes[v].neighbors[l_u][u].flow += value;
 
-                int end_value = max(0, value - layers[l_v].vertexes[v].exf);
-                int new_value = value - end_value;
+                long long end_value = max((long long)0, value - layers[l_v].vertexes[v].exf);
+                long long new_value = value - end_value;
                 layers[l_v].vertexes[v].flow -= end_value;
                 layers[l_v].vertexes[v].exf -= new_value;
                 
@@ -348,7 +357,7 @@ double Web::Effectivness() {
     return (double)source_flow /hard;
 }
 
-int Web::test(int l_u, int u, int l_v, int v, int value) {   
+long long Web::test(int l_u, int u, int l_v, int v, long long value) {   
     if (l_u <= q && l_v > q){
         checkpartadd(l_v, v, layers[l_u].vertexes[u].part, value, findnext(l_v, v), findprev(l_v, v));
         correctwindows(l_v, v, findnext(l_v, v),findprev(l_v, v));
@@ -362,7 +371,7 @@ int Web::test(int l_u, int u, int l_v, int v, int value) {
 
 }
 
-void Web::checkpartadd(int l_v, int v, int part, int value, int ni, int pi) {   
+void Web::checkpartadd(int l_v, int v, int part, long long value, int ni, int pi) {   
     int numpart1 = layers[l_v].vertexes[v].setpart.size();
     layers[l_v].vertexes[v].partIn[part]+=value;
     if (layers[l_v].vertexes[v].partIn[part] != 0) layers[l_v].vertexes[v].setpart.insert(part);
@@ -390,7 +399,7 @@ void Web::checkpartadd(int l_v, int v, int part, int value, int ni, int pi) {
     }
 }
 
-void Web::checkpartdec(int l_v, int v, int part, int value) {   
+void Web::checkpartdec(int l_v, int v, int part, long long value) {   
     int numpart1 = layers[l_v].vertexes[v].setpart.size();
     layers[l_v].vertexes[v].partIn[part]-=value;
     if (layers[l_v].vertexes[v].partIn[part] == 0) layers[l_v].vertexes[v].setpart.erase(part);//убрали совсем
@@ -578,15 +587,15 @@ void Web::part_from_proc(int l_q, int l_p) {
         for (map<int, NeighborInfo >::iterator it = layers[l_q].vertexes[u].neighbors[l_p].begin(); it != layers[l_q].vertexes[u].neighbors[l_p].end(); it++) {
             // Номер вершины соседа
             int v = it->first;
-            int value = layers[l_q].vertexes[u].neighbors[l_p][v].flow;
+            long long value = layers[l_q].vertexes[u].neighbors[l_p][v].flow;
             layers[l_q].vertexes[u].neighbors[l_p][v].flow -= value;
             layers[l_p].vertexes[v].neighbors[l_q][u].flow += value;
             
             // Нужно от самого конца начинать убирать
             // Считаем, что что-то может утечь exf, а потом уже только flow
             // Дальше число, на которое flow должно измениться
-            int end_value = max(0, value - layers[l_p].vertexes[v].exf);
-            int new_value = value - end_value;
+            long long end_value = max((long long)0, value - layers[l_p].vertexes[v].exf);
+            long long new_value = value - end_value;
             layers[l_p].vertexes[v].flow -= end_value;
             layers[l_p].vertexes[v].exf -= new_value;
                 
@@ -725,6 +734,8 @@ int Web::add_proc_layer(int iproc) {
     // Заполняем инфу о разделах в проце
     for (int j=0; j < layers[l_j].vertexes.size(); j++) {
         layers[l_j].vertexes[j].partIn.resize(q + 1);
+        //  Учитываем, что на переключение задано время
+        layers[l_j].vertexes[j].cTime = layers[l_j].vertexes[j].cTime * proc_performance;
         for(int k = 0; k < q + 1; k++) {
             layers[l_j].vertexes[j].partIn[k] = 0;
         }
